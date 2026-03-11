@@ -14,6 +14,12 @@ const experiments: Experiment[] = [
     description: "Classic red/cyan stereoscopic effect using pure CSS blend modes. Paste any image and watch it pop.",
     date: "2025-03-11",
   },
+  {
+    slug: "wireframe-terrain",
+    title: "Wireframe Terrain",
+    description: "Retro 3D wireframe landscape with audio reactivity. Scrolling terrain driven by noise, controllable via sliders or your microphone.",
+    date: "2025-03-11",
+  },
 ];
 
 export default function Home() {
