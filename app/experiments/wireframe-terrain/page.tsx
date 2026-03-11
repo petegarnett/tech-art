@@ -261,19 +261,16 @@ export default function WireframeTerrainPage() {
     const cellW = gridWidth / cols;
     const cellD = gridDepth / rows;
 
-    // Camera / projection
-    const focalLength = Math.min(width, height) * 0.8;
+    // Camera / projection — classic retro terrain renderer
+    // Camera sits above the terrain looking along +Z axis
+    // screenX = x/z * focal + centerX
+    // screenY = (cameraHeight - terrainHeight)/z * focal + horizonY
+    const focalLength = Math.min(width, height) * 0.7;
     const centerX = width / 2;
-    const centerY = height * 0.45;
+    const horizonY = height * (0.15 + (1 - p.tilt) * 0.25); // tilt controls horizon position
+    const cameraHeight = 60 + p.tilt * 180; // 60-240 units above ground
 
-    // Camera elevation and tilt angle
-    // tilt 0 = shallow angle (looking mostly forward), tilt 1 = steeper downward view
-    const cameraHeight = 80 + p.tilt * 200; // 80-280 units above ground
-    const tiltAngle = 0.15 + p.tilt * 0.55; // 0.15-0.7 radians (~9°-40°)
-    const cosT = Math.cos(tiltAngle);
-    const sinT = Math.sin(tiltAngle);
-
-    const nearZ = 200;
+    const nearZ = 80;
     const farZ = nearZ + gridDepth;
 
     // Scrolling offset
@@ -337,20 +334,10 @@ export default function WireframeTerrainPage() {
         const v = vertices[r][c];
         v.hn = (v.hn - minH) / hRange; // 0 to 1
 
-        // Apply camera transform: elevate camera and rotate around X-axis
-        // Camera is at (0, cameraHeight, 0) looking forward and down
-        const vy = v.y - cameraHeight; // translate: camera is above
-        const vz = v.z;
-
-        // Rotate around X-axis by tiltAngle (look downward)
-        const rotY = vy * cosT - vz * sinT;
-        const rotZ = vy * sinT + vz * cosT;
-
-        // Perspective projection
-        if (rotZ > 10) {
-          v.sx = (v.x / rotZ) * focalLength + centerX;
-          v.sy = (rotY / rotZ) * focalLength + centerY;
-          v.z = rotZ; // store rotated z for depth sorting/fog
+        // Simple perspective projection — camera above terrain looking along +Z
+        if (v.z > 1) {
+          v.sx = (v.x / v.z) * focalLength + centerX;
+          v.sy = ((cameraHeight + v.y) / v.z) * focalLength + horizonY;
         } else {
           v.z = 0; // mark as behind camera
         }
@@ -371,10 +358,10 @@ export default function WireframeTerrainPage() {
       z2: number,
       hn2: number,
     ) => {
-      if (z1 <= 10 || z2 <= 10) return;
+      if (z1 <= 1 || z2 <= 1) return;
 
       const avgZ = (z1 + z2) / 2;
-      const depthFade = clamp(map(avgZ, 10, farZ * cosT + cameraHeight * sinT, 1, 0.08), 0, 1);
+      const depthFade = clamp(map(avgZ, nearZ, farZ, 1, 0.08), 0, 1);
       const avgHn = (hn1 + hn2) / 2;
 
       // Colour
@@ -392,7 +379,7 @@ export default function WireframeTerrainPage() {
 
       const alpha = depthFade * (p.gradientMode ? 1 : 0.3 + avgHn * 0.7);
       ctx.strokeStyle = `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${alpha.toFixed(3)})`;
-      ctx.lineWidth = p.lineWidth * clamp(map(avgZ, 10, farZ * cosT + cameraHeight * sinT, 1, 0.2), 0.1, 3);
+      ctx.lineWidth = p.lineWidth * clamp(map(avgZ, nearZ, farZ, 1, 0.2), 0.1, 3);
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);

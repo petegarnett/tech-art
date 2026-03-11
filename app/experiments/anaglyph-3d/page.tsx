@@ -165,21 +165,15 @@ export default function AnaglyphPage() {
                 }}
               >
                 {/* Cyan layer (base) */}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundColor: "#00ffff",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundBlendMode: "lighten",
-                    transform: `translateX(${cyanOffset}px)`,
-                    transition: animating ? "none" : "transform 0.1s ease",
-                  }}
-                >
-                  {/* Grayscale overlay: desaturates the image underneath while preserving the cyan tint */}
-                  {grayscale && (
+                {grayscale ? (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      transform: `translateX(${cyanOffset}px)`,
+                      transition: animating ? "none" : "transform 0.1s ease",
+                    }}
+                  >
                     <div
                       style={{
                         position: "absolute",
@@ -187,28 +181,44 @@ export default function AnaglyphPage() {
                         backgroundImage: `url(${imageUrl})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
-                        filter: "grayscale(100%) brightness(0.7)",
-                        mixBlendMode: "saturation",
+                        filter: "grayscale(100%)",
                       }}
                     />
-                  )}
-                </div>
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        backgroundColor: "#00ffff",
+                        mixBlendMode: "lighten",
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundImage: `url(${imageUrl})`,
+                      backgroundColor: "#00ffff",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      backgroundBlendMode: "lighten",
+                      transform: `translateX(${cyanOffset}px)`,
+                      transition: animating ? "none" : "transform 0.1s ease",
+                    }}
+                  />
+                )}
                 {/* Red layer (offset, blended on top) */}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundColor: "#ff0000",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundBlendMode: "lighten",
-                    mixBlendMode: "darken",
-                    transform: `translateX(${redOffset}px)`,
-                    transition: animating ? "none" : "transform 0.1s ease",
-                  }}
-                >
-                  {grayscale && (
+                {grayscale ? (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      mixBlendMode: "darken",
+                      transform: `translateX(${redOffset}px)`,
+                      transition: animating ? "none" : "transform 0.1s ease",
+                    }}
+                  >
                     <div
                       style={{
                         position: "absolute",
@@ -216,12 +226,34 @@ export default function AnaglyphPage() {
                         backgroundImage: `url(${imageUrl})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
-                        filter: "grayscale(100%) brightness(0.7)",
-                        mixBlendMode: "saturation",
+                        filter: "grayscale(100%)",
                       }}
                     />
-                  )}
-                </div>
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        backgroundColor: "#ff0000",
+                        mixBlendMode: "lighten",
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundImage: `url(${imageUrl})`,
+                      backgroundColor: "#ff0000",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      backgroundBlendMode: "lighten",
+                      mixBlendMode: "darken",
+                      transform: `translateX(${redOffset}px)`,
+                      transition: animating ? "none" : "transform 0.1s ease",
+                    }}
+                  />
+                )}
               </div>
             </div>
           )}
