@@ -113,7 +113,7 @@ export default function WireframeTerrainPage() {
   // Parameters
   const [amplitude, setAmplitude] = useState(80);
   const [speed, setSpeed] = useState(1);
-  const [frequency, setFrequency] = useState(0.05);
+  const [frequency, setFrequency] = useState(0.015);
   const [gridDensity, setGridDensity] = useState(40);
   const [tilt, setTilt] = useState(0.6);
   const [lineWidth, setLineWidth] = useState(1);
@@ -306,7 +306,7 @@ export default function WireframeTerrainPage() {
         // Noise-based height
         const nx = x * audioFreq + timeOffset;
         const nz = z * audioFreq + timeOffset;
-        let h = octaveNoise2D(nx, nz, 4, 0.5) * audioAmp;
+        let h = octaveNoise2D(nx, nz, 2, 0.4) * audioAmp;
 
         // Add high-frequency detail from audio
         if (audioDetail > 0) {
@@ -402,6 +402,12 @@ export default function WireframeTerrainPage() {
         if (r > 0) {
           const vd = vertices[r - 1][c];
           drawLine(v.sx, v.sy, v.z, v.hn, vd.sx, vd.sy, vd.z, vd.hn);
+        }
+
+        // Diagonal line (triangulate each cell)
+        if (c < cols && r > 0) {
+          const vdr = vertices[r - 1][c + 1];
+          drawLine(v.sx, v.sy, v.z, v.hn, vdr.sx, vdr.sy, vdr.z, vdr.hn);
         }
       }
     }
@@ -550,9 +556,9 @@ export default function WireframeTerrainPage() {
                 </div>
                 <input
                   type="range"
-                  min={0.01}
+                  min={0.005}
                   max={0.2}
-                  step={0.005}
+                  step={0.001}
                   value={frequency}
                   onChange={(e) => setFrequency(Number(e.target.value))}
                   className="w-full h-1 appearance-none bg-white/10 rounded-full cursor-pointer accent-white/60"
