@@ -16,29 +16,41 @@ const DEFAULT_IMAGE = PRESETS[0].url;
 export default function AnaglyphPage() {
   const [imageUrl, setImageUrl] = useState(DEFAULT_IMAGE);
   const [inputValue, setInputValue] = useState(DEFAULT_IMAGE);
-  const [offset, setOffset] = useState(5);
+  const [redOffset, setRedOffset] = useState(5);
+  const [cyanOffset, setCyanOffset] = useState(-5);
   const [rotation, setRotation] = useState(0);
   const [animating, setAnimating] = useState(false);
+  const [grayscale, setGrayscale] = useState(false);
   const [useSvgFilter, setUseSvgFilter] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const animRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const baseOffsetRef = useRef(5);
+  const baseRedOffsetRef = useRef(5);
+  const baseCyanOffsetRef = useRef(-5);
 
-  // Animation loop using requestAnimationFrame + sine wave
+  // Animation loop using requestAnimationFrame + sine waves (independent channels)
   const animate = useCallback((timestamp: number) => {
     if (!startTimeRef.current) startTimeRef.current = timestamp;
     const elapsed = (timestamp - startTimeRef.current) / 1000;
-    const sineValue = Math.sin(elapsed * 2); // oscillate at ~2 rad/s
-    const newOffset = baseOffsetRef.current + sineValue * (baseOffsetRef.current * 0.8);
-    setOffset(Math.max(1, Math.min(30, newOffset)));
+
+    // Red oscillates at 1.7 rad/s
+    const redSine = Math.sin(elapsed * 1.7);
+    const newRedOffset = baseRedOffsetRef.current + redSine * (Math.abs(baseRedOffsetRef.current) * 0.8 + 2);
+    setRedOffset(Math.max(-30, Math.min(30, newRedOffset)));
+
+    // Cyan oscillates at 2.3 rad/s with phase shift of 1.0
+    const cyanSine = Math.sin(elapsed * 2.3 + 1.0);
+    const newCyanOffset = baseCyanOffsetRef.current + cyanSine * (Math.abs(baseCyanOffsetRef.current) * 0.8 + 2);
+    setCyanOffset(Math.max(-30, Math.min(30, newCyanOffset)));
+
     animRef.current = requestAnimationFrame(animate);
   }, []);
 
   useEffect(() => {
     if (animating) {
-      baseOffsetRef.current = offset;
+      baseRedOffsetRef.current = redOffset;
+      baseCyanOffsetRef.current = cyanOffset;
       startTimeRef.current = 0;
       animRef.current = requestAnimationFrame(animate);
     } else {
@@ -73,11 +85,8 @@ export default function AnaglyphPage() {
     setImageUrl(url);
   };
 
-  const cssVars = {
-    "--anaglyph-offset": `${offset}px`,
-    "--anaglyph-rotation": `${rotation}deg`,
-    "--anaglyph-image": `url(${imageUrl})`,
-  } as React.CSSProperties;
+  // Source input for SVG filter: either grayscale-converted or raw SourceGraphic
+  const svgFilterSource = grayscale ? "gray" : "SourceGraphic";
 
   return (
     <ExperimentLayout title="Anaglyph 3D">
@@ -85,15 +94,20 @@ export default function AnaglyphPage() {
       <svg width="0" height="0" style={{ position: "absolute" }}>
         <defs>
           <filter id="anaglyph-filter" colorInterpolationFilters="sRGB">
-            {/* Red channel: offset left */}
-            <feOffset in="SourceGraphic" dx={-offset} dy={0} result="shifted" />
-            <feComponentTransfer in="shifted" result="red-layer">
+            {/* Optional grayscale conversion */}
+            {grayscale && (
+              <feColorMatrix type="saturate" values="0" in="SourceGraphic" result="gray" />
+            )}
+            {/* Red channel: offset by redOffset */}
+            <feOffset in={svgFilterSource} dx={redOffset} dy={0} result="red-shifted" />
+            <feComponentTransfer in="red-shifted" result="red-layer">
               <feFuncR type="identity" />
               <feFuncG type="discrete" tableValues="0" />
               <feFuncB type="discrete" tableValues="0" />
             </feComponentTransfer>
-            {/* Cyan channel: original position */}
-            <feComponentTransfer in="SourceGraphic" result="cyan-layer">
+            {/* Cyan channel: offset by cyanOffset */}
+            <feOffset in={svgFilterSource} dx={cyanOffset} dy={0} result="cyan-shifted" />
+            <feComponentTransfer in="cyan-shifted" result="cyan-layer">
               <feFuncR type="discrete" tableValues="0" />
               <feFuncG type="identity" />
               <feFuncB type="identity" />
@@ -119,7 +133,6 @@ export default function AnaglyphPage() {
             <div
               className="w-full h-full max-w-4xl max-h-[70vh] lg:max-h-full rounded-lg overflow-hidden"
               style={{
-                ...cssVars,
                 perspective: "800px",
               }}
             >
@@ -141,7 +154,6 @@ export default function AnaglyphPage() {
             <div
               className="w-full h-full max-w-4xl max-h-[70vh] lg:max-h-full rounded-lg overflow-hidden"
               style={{
-                ...cssVars,
                 perspective: "800px",
               }}
             >
@@ -162,6 +174,9 @@ export default function AnaglyphPage() {
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     backgroundBlendMode: "lighten",
+                    transform: `translateX(${cyanOffset}px)`,
+                    transition: animating ? "none" : "transform 0.1s ease",
+                    ...(grayscale ? { filter: "grayscale(100%)" } : {}),
                   }}
                 />
                 {/* Red layer (offset, blended on top) */}
@@ -175,8 +190,9 @@ export default function AnaglyphPage() {
                     backgroundPosition: "center",
                     backgroundBlendMode: "lighten",
                     mixBlendMode: "darken",
-                    transform: `translateX(${offset}px)`,
+                    transform: `translateX(${redOffset}px)`,
                     transition: animating ? "none" : "transform 0.1s ease",
+                    ...(grayscale ? { filter: "grayscale(100%)" } : {}),
                   }}
                 />
               </div>
@@ -214,30 +230,61 @@ export default function AnaglyphPage() {
               </div>
             </div>
 
-            {/* Offset slider */}
+            {/* Red Offset slider */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] uppercase tracking-wider text-white/40">
-                  Offset
+                <label className="text-[10px] uppercase tracking-wider text-red-400/60 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500/70" />
+                  Red Offset
                 </label>
                 <span className="text-[10px] text-white/30 tabular-nums">
-                  {offset.toFixed(1)}px
+                  {redOffset.toFixed(1)}px
                 </span>
               </div>
               <input
                 type="range"
-                min={1}
+                min={-30}
                 max={30}
                 step={0.5}
-                value={offset}
+                value={redOffset}
                 onChange={(e) => {
-                  setOffset(parseFloat(e.target.value));
+                  setRedOffset(parseFloat(e.target.value));
                   if (animating) {
-                    baseOffsetRef.current = parseFloat(e.target.value);
+                    baseRedOffsetRef.current = parseFloat(e.target.value);
                   }
                 }}
                 disabled={animating}
-                className="w-full h-1 appearance-none bg-white/10 rounded-full cursor-pointer accent-white/60 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full h-1 appearance-none bg-white/10 rounded-full cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ accentColor: "#f87171" }}
+              />
+            </div>
+
+            {/* Cyan Offset slider */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] uppercase tracking-wider text-cyan-400/60 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-500/70" />
+                  Cyan Offset
+                </label>
+                <span className="text-[10px] text-white/30 tabular-nums">
+                  {cyanOffset.toFixed(1)}px
+                </span>
+              </div>
+              <input
+                type="range"
+                min={-30}
+                max={30}
+                step={0.5}
+                value={cyanOffset}
+                onChange={(e) => {
+                  setCyanOffset(parseFloat(e.target.value));
+                  if (animating) {
+                    baseCyanOffsetRef.current = parseFloat(e.target.value);
+                  }
+                }}
+                disabled={animating}
+                className="w-full h-1 appearance-none bg-white/10 rounded-full cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ accentColor: "#22d3ee" }}
               />
             </div>
 
@@ -276,6 +323,25 @@ export default function AnaglyphPage() {
                 <span
                   className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white/80 transition-transform ${
                     animating ? "translate-x-4" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Grayscale toggle */}
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase tracking-wider text-white/40">
+                Grayscale
+              </label>
+              <button
+                onClick={() => setGrayscale(!grayscale)}
+                className={`relative w-9 h-5 rounded-full transition-colors ${
+                  grayscale ? "bg-white/30" : "bg-white/10"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white/80 transition-transform ${
+                    grayscale ? "translate-x-4" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -340,7 +406,8 @@ export default function AnaglyphPage() {
             {/* Info */}
             <div className="text-[10px] text-white/15 leading-relaxed pt-2 border-t border-white/5">
               Classic anaglyph 3D — view with red/cyan glasses for stereoscopic depth.
-              Adjust offset to control the separation between color channels.
+              Adjust red &amp; cyan offsets independently to control channel separation.
+              Enable grayscale for cleaner 3D without colour conflicts.
             </div>
           </div>
         </div>
