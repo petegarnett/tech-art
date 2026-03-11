@@ -20,6 +20,12 @@ const experiments: Experiment[] = [
     description: "Retro 3D wireframe landscape with audio reactivity. Scrolling terrain driven by noise, controllable via sliders or your microphone.",
     date: "2025-03-11",
   },
+  {
+    slug: "led-matrix",
+    title: "LED Matrix",
+    description: "Virtual LED pixel grid simulator with built-in animations and custom algorithm editor. Brightness mapped to pixel size for realistic LED look.",
+    date: "2025-03-11",
+  },
 ];
 
 export default function Home() {
