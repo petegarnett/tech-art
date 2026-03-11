@@ -9,7 +9,7 @@ interface ExperimentLayoutProps {
 
 export default function ExperimentLayout({ title, children }: ExperimentLayoutProps) {
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
+    <div className="fixed inset-0 bg-black overflow-y-auto lg:overflow-hidden">
       {/* Navigation overlay */}
       <div className="absolute top-0 left-0 z-50 flex items-center gap-3 p-4">
         <Link

@@ -26,7 +26,7 @@ export default function Home() {
   return (
     <main className="min-h-screen px-6 py-16 max-w-5xl mx-auto">
       <header className="mb-16">
-        <h1 className="text-4xl font-bold tracking-tight mb-3">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
           Tech Art Lab
         </h1>
         <p className="text-neutral-500 text-lg">

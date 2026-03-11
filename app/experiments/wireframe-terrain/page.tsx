@@ -456,14 +456,14 @@ export default function WireframeTerrainPage() {
 
   return (
     <ExperimentLayout title="Wireframe Terrain">
-      <div className="w-full h-full flex flex-col lg:flex-row pt-12">
+      <div className="w-full h-auto lg:h-full flex flex-col lg:flex-row pt-12">
         {/* Canvas area */}
-        <div className="flex-1 relative min-h-0">
+        <div className="h-[55vh] lg:h-auto lg:flex-1 relative min-h-0">
           <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
         </div>
 
         {/* Control panel */}
-        <div className="lg:w-72 xl:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto">
+        <div className="lg:w-72 xl:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto pb-8 lg:pb-0 touch-manipulation">
           <div className="p-4 space-y-5">
             <h2 className="text-[10px] uppercase tracking-widest text-white/30 mb-4">
               Controls

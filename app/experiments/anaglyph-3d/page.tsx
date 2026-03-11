@@ -118,9 +118,9 @@ export default function AnaglyphPage() {
         </defs>
       </svg>
 
-      <div className="w-full h-full flex flex-col lg:flex-row pt-12">
+      <div className="w-full h-auto lg:h-full flex flex-col lg:flex-row pt-12">
         {/* Main image area */}
-        <div className="flex-1 relative flex items-center justify-center p-4 lg:p-8 min-h-0">
+        <div className="h-[55vh] lg:h-auto lg:flex-1 relative flex items-center justify-center p-4 lg:p-8 min-h-0">
           {imageError ? (
             <div className="text-neutral-500 text-sm border border-neutral-800 rounded-lg p-8 text-center max-w-md">
               <p className="mb-2">⚠ Could not load image</p>
@@ -131,7 +131,7 @@ export default function AnaglyphPage() {
           ) : useSvgFilter ? (
             /* SVG Filter Mode */
             <div
-              className="w-full h-full max-w-4xl max-h-[70vh] lg:max-h-full rounded-lg overflow-hidden"
+              className="w-full h-full max-w-4xl max-h-full lg:max-h-full rounded-lg overflow-hidden"
               style={{
                 perspective: "800px",
               }}
@@ -152,7 +152,7 @@ export default function AnaglyphPage() {
           ) : (
             /* CSS Blend Mode */
             <div
-              className="w-full h-full max-w-4xl max-h-[70vh] lg:max-h-full rounded-lg overflow-hidden"
+              className="w-full h-full max-w-4xl max-h-full lg:max-h-full rounded-lg overflow-hidden"
               style={{
                 perspective: "800px",
               }}
@@ -260,7 +260,7 @@ export default function AnaglyphPage() {
         </div>
 
         {/* Control panel */}
-        <div className="lg:w-72 xl:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto">
+        <div className="lg:w-72 xl:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto pb-8 lg:pb-0 touch-manipulation">
           <div className="p-4 space-y-5">
             <h2 className="text-[10px] uppercase tracking-widest text-white/30 mb-4">
               Controls
