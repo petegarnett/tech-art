@@ -176,9 +176,23 @@ export default function AnaglyphPage() {
                     backgroundBlendMode: "lighten",
                     transform: `translateX(${cyanOffset}px)`,
                     transition: animating ? "none" : "transform 0.1s ease",
-                    ...(grayscale ? { filter: "grayscale(100%)" } : {}),
                   }}
-                />
+                >
+                  {/* Grayscale overlay: desaturates the image underneath while preserving the cyan tint */}
+                  {grayscale && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        backgroundImage: `url(${imageUrl})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        filter: "grayscale(100%) brightness(0.7)",
+                        mixBlendMode: "saturation",
+                      }}
+                    />
+                  )}
+                </div>
                 {/* Red layer (offset, blended on top) */}
                 <div
                   style={{
@@ -192,9 +206,22 @@ export default function AnaglyphPage() {
                     mixBlendMode: "darken",
                     transform: `translateX(${redOffset}px)`,
                     transition: animating ? "none" : "transform 0.1s ease",
-                    ...(grayscale ? { filter: "grayscale(100%)" } : {}),
                   }}
-                />
+                >
+                  {grayscale && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        backgroundImage: `url(${imageUrl})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        filter: "grayscale(100%) brightness(0.7)",
+                        mixBlendMode: "saturation",
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             </div>
           )}

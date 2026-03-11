@@ -262,18 +262,18 @@ export default function WireframeTerrainPage() {
     const cellD = gridDepth / rows;
 
     // Camera / projection
-    const focalLength = Math.min(width, height) * 0.9;
+    const focalLength = Math.min(width, height) * 0.8;
     const centerX = width / 2;
-    const centerY = height * 0.5;
+    const centerY = height * 0.45;
 
     // Camera elevation and tilt angle
-    // tilt 0 = looking straight ahead, tilt 1 = looking steeply down
-    const cameraHeight = 250 + p.tilt * 350; // 250-600 units above ground
-    const tiltAngle = 0.3 + p.tilt * 0.7; // 0.3-1.0 radians (~17°-57°)
+    // tilt 0 = shallow angle (looking mostly forward), tilt 1 = steeper downward view
+    const cameraHeight = 80 + p.tilt * 200; // 80-280 units above ground
+    const tiltAngle = 0.15 + p.tilt * 0.55; // 0.15-0.7 radians (~9°-40°)
     const cosT = Math.cos(tiltAngle);
     const sinT = Math.sin(tiltAngle);
 
-    const nearZ = 50;
+    const nearZ = 200;
     const farZ = nearZ + gridDepth;
 
     // Scrolling offset
