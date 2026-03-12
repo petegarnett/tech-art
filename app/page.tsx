@@ -26,6 +26,12 @@ const experiments: Experiment[] = [
     description: "Virtual LED pixel grid simulator with built-in animations and custom algorithm editor. Brightness mapped to pixel size for realistic LED look.",
     date: "2025-03-11",
   },
+  {
+    slug: "split-flap",
+    title: "Split-Flap Display",
+    description: "Mechanical split-flap letter board with cascading flip animations. Live clock, custom messages, and that satisfying airport departure board aesthetic.",
+    date: "2025-03-12",
+  },
 ];
 
 export default function Home() {
