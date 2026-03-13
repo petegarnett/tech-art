@@ -367,19 +367,15 @@ export default function SplitFlapPage() {
 
   const handleConfigChange = useCallback(
     (newConfig: BoardConfig) => {
-      const sizeChanged =
-        newConfig.rows !== config.rows || newConfig.cols !== config.cols;
-
       setConfig(newConfig);
 
-      if (sizeChanged) {
-        // Rebuild board with new dimensions
-        const sceneBoard = buildSceneBoard(currentScene, newConfig);
-        const withClock = applyClockOverlay(sceneBoard, newConfig);
-        setBoard(withClock);
-      }
+      // Always rebuild the board when config changes
+      // (clock position, clock toggle, board size, etc. all affect layout)
+      const sceneBoard = buildSceneBoard(currentScene, newConfig);
+      const withClock = applyClockOverlay(sceneBoard, newConfig);
+      setBoard(withClock);
     },
-    [config.rows, config.cols, buildSceneBoard, currentScene]
+    [buildSceneBoard, currentScene]
   );
 
   const handleRefreshWeather = useCallback(() => {
@@ -403,6 +399,13 @@ export default function SplitFlapPage() {
       })
       .catch(() => {});
   }, [location]);
+
+  /** Manually refresh the board — rebuilds current scene */
+  const handleRefreshBoard = useCallback(() => {
+    const sceneBoard = buildSceneBoard(currentScene, config);
+    const withClock = applyClockOverlay(sceneBoard, config);
+    setBoard(withClock);
+  }, [buildSceneBoard, currentScene, config]);
 
   const maxChars = config.rows * config.cols;
   const clockChars = 5;
@@ -431,6 +434,7 @@ export default function SplitFlapPage() {
           onResumeAutoRotate={handleResumeAutoRotate}
           location={location}
           onRefreshWeather={handleRefreshWeather}
+          onRefreshBoard={handleRefreshBoard}
         />
       </div>
     </ExperimentLayout>

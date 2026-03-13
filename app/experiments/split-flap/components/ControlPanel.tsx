@@ -30,6 +30,7 @@ interface ControlPanelProps {
   onResumeAutoRotate: () => void;
   location: Location | null;
   onRefreshWeather: () => void;
+  onRefreshBoard: () => void;
 }
 
 export default function ControlPanel({
@@ -47,6 +48,7 @@ export default function ControlPanel({
   onResumeAutoRotate,
   location,
   onRefreshWeather,
+  onRefreshBoard,
 }: ControlPanelProps) {
   const [message, setMessage] = useState("");
   const availableChars = maxChars - (config.showClock ? clockChars : 0);
@@ -99,6 +101,13 @@ export default function ControlPanel({
               </span>
             </div>
             <div className="flex gap-1">
+              <button
+                onClick={onRefreshBoard}
+                className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs rounded transition-colors"
+                title="Refresh board"
+              >
+                ↻
+              </button>
               <button
                 onClick={onNextScene}
                 className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs rounded transition-colors"
