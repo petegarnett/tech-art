@@ -1,9 +1,17 @@
+/**
+ * Browser geolocation with reverse geocoding.
+ * Uses the Geolocation API to get lat/lon, then Nominatim
+ * (OpenStreetMap) to resolve a human-readable city name.
+ * Falls back to London if geolocation is denied or unavailable.
+ */
+
 export interface Location {
   lat: number;
   lon: number;
   name: string;
 }
 
+/** Request browser location and reverse-geocode to a city name. */
 export function getLocation(): Promise<Location> {
   return new Promise((resolve) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {

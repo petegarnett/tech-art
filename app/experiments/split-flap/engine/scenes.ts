@@ -1,3 +1,19 @@
+/**
+ * Scene builders for the split-flap display.
+ *
+ * Each scene is a pure function: (config, data?) → BoardCell[][]
+ * This makes it easy to add new scenes — just write a builder function
+ * and register it in page.tsx's buildSceneBoard switch.
+ *
+ * Scenes:
+ *   - DateTime: current time, day, date, week/day-of-year
+ *   - Weather:  ASCII art icon (coloured) + temperature/conditions
+ *   - News:     BBC headline with word-wrapping
+ *   - Stocks:   ticker symbols with green/red change percentages
+ *
+ * Per-cell colours are applied via BoardCell.flapBg / flapText overrides.
+ * Cells without overrides inherit the active theme colours.
+ */
 import type { BoardCell, BoardConfig } from './types';
 
 export interface SceneData {

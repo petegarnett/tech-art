@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * Stock market API — fetches real-time prices from Yahoo Finance.
+ * No API key required. Cached for 1 minute.
+ * Returns: array of { symbol, price, changePercent } objects.
+ * Falls back gracefully if Yahoo Finance blocks the request.
+ */
 const SYMBOLS = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN'];
 
 export async function GET() {

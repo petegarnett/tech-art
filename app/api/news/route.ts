@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * News API — fetches BBC News RSS feed and parses headlines.
+ * No API key required. Cached for 5 minutes.
+ * Returns: array of { title, source } objects (up to 20 items).
+ * Handles both CDATA-wrapped and plain XML title formats.
+ */
 export async function GET() {
   try {
     const res = await fetch('https://feeds.bbci.co.uk/news/rss.xml', { next: { revalidate: 300 } });

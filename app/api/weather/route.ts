@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * Weather API proxy — fetches current conditions from Open-Meteo.
+ * Uses Open-Meteo (free, no API key required) with 5-minute cache.
+ * Expects ?lat=XX&lon=YY query parameters from browser geolocation.
+ * Returns: current temp, weather code, wind, humidity, daily high/low.
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const lat = searchParams.get('lat');
