@@ -135,89 +135,83 @@ function getTempColor(temp: number): string {
   return '#ff4444';
 }
 
-// ASCII weather icons (6 rows × 6 cols each)
-const WEATHER_ICONS: Record<string, { rows: string[]; color: string; secondaryColor?: string }> = {
-  'sun': {
-    rows: [
-      '\\  /  ',
-      ' .-. ',
-      '/ _ \\',
-      '\\ _ /',
-      ' \'-\' ',
-      '/  \\  ',
-    ],
-    color: '#ffcc00',
-  },
-  'cloud': {
-    rows: [
-      '      ',
-      ' .--. ',
-      '(    )',
-      '(____)',
-      '      ',
-      '      ',
-    ],
-    color: '#cccccc',
-  },
-  'sun-cloud': {
-    rows: [
-      '  \\ / ',
-      '- .-. ',
-      ' (   )',
-      ' (___)',
-      '      ',
-      '      ',
-    ],
-    color: '#cccccc',
-    secondaryColor: '#ffcc00',
-  },
-  'rain': {
-    rows: [
-      ' .--. ',
-      '(    )',
-      '(____)',
-      ' , , ,',
-      '  , , ',
-      '      ',
-    ],
-    color: '#cccccc',
-    secondaryColor: '#4488cc',
-  },
-  'snow': {
-    rows: [
-      ' .--. ',
-      '(    )',
-      '(____)',
-      ' * * *',
-      '  * * ',
-      '      ',
-    ],
-    color: '#cccccc',
-    secondaryColor: '#aaddff',
-  },
-  'thunder': {
-    rows: [
-      ' .--. ',
-      '(    )',
-      '(____)',
-      '  /   ',
-      ' /    ',
-      '      ',
-    ],
-    color: '#666666',
-    secondaryColor: '#ffcc00',
-  },
-  'fog': {
-    rows: [
-      '      ',
-      '------',
-      ' ---- ',
-      '------',
-      ' ---- ',
-      '      ',
-    ],
-    color: '#999999',
-  },
+/**
+ * Weather icons as coloured flap backgrounds.
+ *
+ * On a split-flap board, ASCII art looks bad because each character is
+ * isolated on its own tile. Instead, we use the flap BACKGROUND COLOUR
+ * as the pixel — a "cloud" is a cluster of white-backgrounded flaps,
+ * a "sun" is yellow flaps, rain is blue dots below a cloud, etc.
+ *
+ * Each icon is a 6×6 grid. Non-null entries get a coloured background.
+ * The char is always a space — the colour IS the icon.
+ */
+type IconGrid = (string | null)[][]; // null = empty, string = flapBg colour
+
+const WEATHER_ICONS: Record<string, IconGrid> = {
+  /* Sun: yellow circle with rays */
+  'sun': [
+    [null,    '#ffcc00', null,    null,    '#ffcc00', null    ],
+    [null,    null,      '#ffcc00','#ffcc00',null,    null    ],
+    ['#ffcc00','#ffcc00','#ffcc00','#ffcc00','#ffcc00','#ffcc00'],
+    ['#ffcc00','#ffcc00','#ffcc00','#ffcc00','#ffcc00','#ffcc00'],
+    [null,    null,      '#ffcc00','#ffcc00',null,    null    ],
+    [null,    '#ffcc00', null,    null,    '#ffcc00', null    ],
+  ],
+  /* Cloud: white/grey rounded block */
+  'cloud': [
+    [null,    null,    null,    null,    null,    null    ],
+    [null,    null,    '#cccccc','#cccccc','#cccccc',null  ],
+    [null,    '#cccccc','#cccccc','#cccccc','#cccccc','#cccccc'],
+    ['#cccccc','#cccccc','#cccccc','#cccccc','#cccccc','#cccccc'],
+    [null,    '#cccccc','#cccccc','#cccccc','#cccccc',null  ],
+    [null,    null,    null,    null,    null,    null    ],
+  ],
+  /* Sun behind cloud: yellow top-left, white cloud bottom-right */
+  'sun-cloud': [
+    ['#ffcc00','#ffcc00',null,    null,    null,    null    ],
+    ['#ffcc00','#ffcc00','#ffcc00',null,    null,    null    ],
+    [null,    null,    '#cccccc','#cccccc','#cccccc',null    ],
+    [null,    '#cccccc','#cccccc','#cccccc','#cccccc','#cccccc'],
+    ['#cccccc','#cccccc','#cccccc','#cccccc','#cccccc','#cccccc'],
+    [null,    null,    null,    null,    null,    null    ],
+  ],
+  /* Rain: cloud on top, blue drops below */
+  'rain': [
+    [null,    null,    '#cccccc','#cccccc','#cccccc',null    ],
+    [null,    '#cccccc','#cccccc','#cccccc','#cccccc','#cccccc'],
+    ['#cccccc','#cccccc','#cccccc','#cccccc','#cccccc','#cccccc'],
+    [null,    '#4488cc',null,    '#4488cc',null,    '#4488cc'],
+    ['#4488cc',null,    '#4488cc',null,    '#4488cc',null    ],
+    [null,    null,    null,    null,    null,    null    ],
+  ],
+  /* Snow: cloud on top, white dots below */
+  'snow': [
+    [null,    null,    '#cccccc','#cccccc','#cccccc',null    ],
+    [null,    '#cccccc','#cccccc','#cccccc','#cccccc','#cccccc'],
+    ['#cccccc','#cccccc','#cccccc','#cccccc','#cccccc','#cccccc'],
+    [null,    '#aaddff',null,    '#aaddff',null,    '#aaddff'],
+    ['#aaddff',null,    '#aaddff',null,    '#aaddff',null    ],
+    [null,    null,    null,    null,    null,    null    ],
+  ],
+  /* Thunder: dark cloud with yellow bolt */
+  'thunder': [
+    [null,    null,    '#666666','#666666','#666666',null    ],
+    [null,    '#666666','#666666','#666666','#666666','#666666'],
+    ['#666666','#666666','#666666','#666666','#666666','#666666'],
+    [null,    null,    '#ffcc00','#ffcc00',null,    null    ],
+    [null,    null,    null,    '#ffcc00','#ffcc00',null    ],
+    [null,    null,    null,    null,    null,    null    ],
+  ],
+  /* Fog: horizontal grey stripes */
+  'fog': [
+    [null,    null,    null,    null,    null,    null    ],
+    ['#999999','#999999','#999999','#999999','#999999','#999999'],
+    [null,    null,    null,    null,    null,    null    ],
+    ['#888888','#888888','#888888','#888888','#888888','#888888'],
+    [null,    null,    null,    null,    null,    null    ],
+    ['#777777','#777777','#777777','#777777','#777777','#777777'],
+  ],
 };
 
 export function buildWeatherScene(config: BoardConfig, weather: WeatherData): BoardCell[][] {
@@ -225,22 +219,12 @@ export function buildWeatherScene(config: BoardConfig, weather: WeatherData): Bo
   const info = getWeatherInfo(weather.weatherCode);
   const icon = WEATHER_ICONS[info.iconType] || WEATHER_ICONS['cloud'];
 
-  // Draw ASCII icon on the left side (cols 0-5, rows 0-5)
-  const iconRows = icon.rows;
-  for (let r = 0; r < Math.min(iconRows.length, config.rows); r++) {
-    const line = iconRows[r];
-    for (let c = 0; c < Math.min(line.length, 6); c++) {
-      if (line[c] !== ' ') {
-        let cellColor = icon.color;
-        if (icon.secondaryColor) {
-          if (r >= 3 && (line[c] === ',' || line[c] === '*' || line[c] === '/')) {
-            cellColor = icon.secondaryColor;
-          }
-          if (info.iconType === 'sun-cloud' && r <= 1 && (line[c] === '\\' || line[c] === '/' || line[c] === '-')) {
-            cellColor = icon.secondaryColor;
-          }
-        }
-        board[r][c] = { char: line[c], flapText: cellColor };
+  // Draw icon on the left side (cols 0-5, rows 0-5) using coloured backgrounds
+  for (let r = 0; r < Math.min(icon.length, config.rows); r++) {
+    for (let c = 0; c < Math.min(icon[r].length, 6); c++) {
+      const color = icon[r][c];
+      if (color) {
+        board[r][c] = { char: ' ', flapBg: color };
       }
     }
   }
