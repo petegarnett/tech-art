@@ -2,10 +2,10 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import SplitFlapChar from "./SplitFlapChar";
-import type { BoardConfig, ThemeConfig } from "../engine/types";
+import type { BoardCell, BoardConfig, ThemeConfig } from "../engine/types";
 
 interface SplitFlapBoardProps {
-  board: string[][];
+  board: BoardCell[][];
   config: BoardConfig;
   theme: ThemeConfig;
 }
@@ -67,16 +67,18 @@ export default function SplitFlapBoard({
         >
           {board.map((row, rowIdx) => (
             <div key={rowIdx} className="flex" style={{ gap: 3 }}>
-              {row.map((char, colIdx) => (
+              {row.map((cell, colIdx) => (
                 <SplitFlapChar
                   key={`${rowIdx}-${colIdx}`}
-                  targetChar={char}
+                  targetChar={cell.char}
                   flipDuration={config.flipDuration}
                   delay={
                     (rowIdx * config.cols + colIdx) * config.cascadeDelay
                   }
                   theme={theme}
                   fontSize={fontSize}
+                  flapBgOverride={cell.flapBg}
+                  flapTextOverride={cell.flapText}
                 />
               ))}
             </div>

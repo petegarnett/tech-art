@@ -1,3 +1,17 @@
+export interface BoardCell {
+  char: string;
+  flapBg?: string;    // override theme flapBg for this cell
+  flapText?: string;  // override theme flapText for this cell
+}
+
+export type SceneId = 'message' | 'datetime' | 'weather' | 'news' | 'stocks';
+
+export interface SceneConfig {
+  enabled: SceneId[];        // which scenes are active
+  rotationInterval: number;  // seconds between scene changes, default 15
+  autoRotate: boolean;       // whether to auto-rotate
+}
+
 export type ColorTheme = 'classic' | 'vestaboard' | 'custom';
 
 export interface ThemeConfig {

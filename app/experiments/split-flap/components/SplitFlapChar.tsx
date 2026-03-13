@@ -10,6 +10,8 @@ interface SplitFlapCharProps {
   delay: number;
   theme: ThemeConfig;
   fontSize: number;
+  flapBgOverride?: string;
+  flapTextOverride?: string;
 }
 
 /**
@@ -26,7 +28,12 @@ function SplitFlapCharInner({
   delay,
   theme,
   fontSize,
+  flapBgOverride,
+  flapTextOverride,
 }: SplitFlapCharProps) {
+  // Effective colours — use overrides if provided, else theme defaults
+  const effectiveBg = flapBgOverride ?? theme.flapBg;
+  const effectiveText = flapTextOverride ?? theme.flapText;
   const [currentChar, setCurrentChar] = useState(targetChar);
   const [nextChar, setNextChar] = useState(targetChar);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -149,7 +156,7 @@ function SplitFlapCharInner({
         style={{
           top: "50%",
           height: "50%",
-          background: `linear-gradient(to bottom, ${theme.flapBg}, ${adjustBrightness(theme.flapBg, -8)})`,
+          background: `linear-gradient(to bottom, ${effectiveBg}, ${adjustBrightness(effectiveBg, -8)})`,
           borderRadius: "0 0 2px 2px",
           zIndex: 1,
         }}
@@ -157,7 +164,7 @@ function SplitFlapCharInner({
         <div
           className="absolute inset-0 flex items-center justify-center font-bold"
           style={{
-            color: theme.flapText,
+            color: effectiveText,
             fontSize,
             lineHeight: 1,
             height: "200%",
@@ -174,7 +181,7 @@ function SplitFlapCharInner({
         style={{
           top: 0,
           height: "50%",
-          background: `linear-gradient(to bottom, ${adjustBrightness(theme.flapBg, 8)}, ${theme.flapBg})`,
+          background: `linear-gradient(to bottom, ${adjustBrightness(effectiveBg, 8)}, ${effectiveBg})`,
           borderRadius: "2px 2px 0 0",
           zIndex: 1,
         }}
@@ -182,7 +189,7 @@ function SplitFlapCharInner({
         <div
           className="absolute inset-0 flex items-center justify-center font-bold"
           style={{
-            color: theme.flapText,
+            color: effectiveText,
             fontSize,
             lineHeight: 1,
             height: "200%",
@@ -204,7 +211,7 @@ function SplitFlapCharInner({
             ? `transform ${halfDuration}ms ease-in`
             : `transform ${halfDuration}ms ease-out`,
           backfaceVisibility: "hidden",
-          background: `linear-gradient(to bottom, ${adjustBrightness(theme.flapBg, 8)}, ${theme.flapBg})`,
+          background: `linear-gradient(to bottom, ${adjustBrightness(effectiveBg, 8)}, ${effectiveBg})`,
           borderRadius: "2px 2px 0 0",
           zIndex: isFlipping ? 3 : 2,
           willChange: isFlipping ? "transform" : "auto",
@@ -216,7 +223,7 @@ function SplitFlapCharInner({
         <div
           className="absolute inset-0 flex items-center justify-center font-bold"
           style={{
-            color: theme.flapText,
+            color: effectiveText,
             fontSize,
             lineHeight: 1,
             height: "200%",
@@ -238,7 +245,7 @@ function SplitFlapCharInner({
             ? `transform ${halfDuration}ms ease-out ${halfDuration}ms`
             : `transform 0ms`,
           backfaceVisibility: "hidden",
-          background: `linear-gradient(to bottom, ${theme.flapBg}, ${adjustBrightness(theme.flapBg, -8)})`,
+          background: `linear-gradient(to bottom, ${effectiveBg}, ${adjustBrightness(effectiveBg, -8)})`,
           borderRadius: "0 0 2px 2px",
           zIndex: isFlipping ? 3 : 0,
           willChange: isFlipping ? "transform" : "auto",
@@ -250,7 +257,7 @@ function SplitFlapCharInner({
         <div
           className="absolute inset-0 flex items-center justify-center font-bold"
           style={{
-            color: theme.flapText,
+            color: effectiveText,
             fontSize,
             lineHeight: 1,
             height: "200%",
