@@ -32,6 +32,12 @@ const experiments: Experiment[] = [
     description: "Mechanical split-flap letter board with cascading flip animations. Live clock, custom messages, and that satisfying airport departure board aesthetic.",
     date: "2025-03-12",
   },
+  {
+    slug: "image-synth",
+    title: "Image Synth",
+    description: "Webcam image sonification — bright pixels become tones, Y is pitch, X is time. Wave a torch around, hold up shapes, write on paper. The camera plays whatever you put in front of it.",
+    date: "2025-04-05",
+  },
 ];
 
 export default function Home() {
