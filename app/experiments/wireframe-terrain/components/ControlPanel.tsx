@@ -11,7 +11,7 @@
  *   - COLOUR:  base colour, gradient toggle, gradient A/B, preset gradients
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BAND_IDS,
   DESTINATION_IDS,
@@ -25,6 +25,12 @@ import type {
   RoutingMatrix,
 } from "../engine/types";
 import { PRESETS, type PresetId, emptyMatrix } from "../engine/routing";
+import {
+  loadPatches,
+  savePatch,
+  deletePatch,
+  type SavedPatch,
+} from "../engine/storage";
 import { GRADIENT_PRESETS, type GradientPreset } from "../engine/colour";
 import SpectrumAnalyser from "./SpectrumAnalyser";
 import RoutingMatrixView from "./RoutingMatrix";
@@ -95,6 +101,13 @@ export default function ControlPanel(props: Props) {
   const [tab, setTab] = useState<Tab>("terrain");
   const [preset, setPreset] = useState<PresetId>("off");
 
+  // User-saved patches in localStorage. Hydrate on mount so SSR matches.
+  const [savedPatches, setSavedPatches] = useState<SavedPatch[]>([]);
+  const [newPatchName, setNewPatchName] = useState("");
+  useEffect(() => {
+    setSavedPatches(loadPatches());
+  }, []);
+
   const {
     terrain,
     setTerrain,
@@ -149,6 +162,37 @@ export default function ControlPanel(props: Props) {
       for (const d of DESTINATION_IDS) copy[b][d] = src[b][d];
     }
     setMatrix(copy);
+  };
+
+  /** Save the current matrix to localStorage with the typed name. */
+  const handleSavePatch = () => {
+    const name = newPatchName.trim();
+    if (!name) return;
+    const saved = savePatch(name, matrix);
+    if (saved) {
+      setSavedPatches(loadPatches());
+      setNewPatchName("");
+    }
+  };
+
+  /** Load a saved patch — replaces the live matrix. */
+  const handleLoadSavedPatch = (p: SavedPatch) => {
+    // Deep clone so editing the matrix doesn't mutate the stored copy in memory.
+    const copy = {} as RoutingMatrix;
+    for (const b of BAND_IDS) {
+      copy[b] = {} as Record<DestinationId, number>;
+      for (const d of DESTINATION_IDS) copy[b][d] = p.matrix[b][d];
+    }
+    setMatrix(copy);
+    // Clear the built-in preset selection since we've loaded a user patch.
+    setPreset("off");
+  };
+
+  /** Delete a saved patch — confirms first. */
+  const handleDeleteSavedPatch = (p: SavedPatch) => {
+    if (typeof window !== "undefined" && !window.confirm(`Delete "${p.name}"?`)) return;
+    deletePatch(p.id);
+    setSavedPatches(loadPatches());
   };
 
   const handleGradientPreset = (p: GradientPreset) => {
@@ -417,6 +461,66 @@ export default function ControlPanel(props: Props) {
               onChange={handleMatrixCell}
               levelsRef={levelsRef}
             />
+
+            {/* ─── Save current patch ─── */}
+            <div className="space-y-1.5 pt-2 border-t border-white/5">
+              <label className="text-[10px] uppercase tracking-wider text-white/40">
+                Save Patch
+              </label>
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  value={newPatchName}
+                  onChange={(e) => setNewPatchName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSavePatch();
+                  }}
+                  placeholder="Patch name"
+                  maxLength={64}
+                  className="flex-1 px-2 py-1 text-[10px] bg-white/5 border border-white/10 rounded text-white/80 placeholder-white/20 focus:outline-none focus:border-white/30"
+                />
+                <button
+                  onClick={handleSavePatch}
+                  disabled={!newPatchName.trim()}
+                  className="px-3 py-1 text-[10px] uppercase tracking-wider text-white/70 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
+            {/* ─── Saved patches list ─── */}
+            {savedPatches.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase tracking-wider text-white/40">
+                  My Patches
+                </label>
+                <div className="space-y-1">
+                  {savedPatches.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-1 group"
+                    >
+                      <button
+                        onClick={() => handleLoadSavedPatch(p)}
+                        className="flex-1 text-left px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded text-white/70 hover:text-white/90 transition-colors truncate"
+                        title={`Load "${p.name}"`}
+                      >
+                        {p.name}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSavedPatch(p)}
+                        className="px-2 py-1 text-[10px] text-white/30 hover:text-red-400/80 transition-colors"
+                        aria-label={`Delete ${p.name}`}
+                        title="Delete"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
