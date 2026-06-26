@@ -167,6 +167,20 @@ export default function ControlPanel(props: Props) {
       } shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto pb-8 lg:pb-0 touch-manipulation transition-[width] duration-200`}
     >
       <div className="p-4 space-y-4">
+        {/* Persistent Spectrum — visible on every tab so you can always see
+            if there's signal coming in. */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label className="text-[10px] uppercase tracking-wider text-white/40">
+              Spectrum
+            </label>
+            <span className="text-[9px] text-white/30 tabular-nums">
+              {audioStatus.active ? "LIVE" : "—"}
+            </span>
+          </div>
+          <SpectrumAnalyser levelsRef={levelsRef} />
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-1">
           {TABS.map((t) => (
@@ -364,14 +378,6 @@ export default function ControlPanel(props: Props) {
               display={sensitivity.toFixed(2)}
               onChange={setSensitivity}
             />
-
-            {/* Spectrum */}
-            <div className="space-y-1 pt-2 border-t border-white/5">
-              <label className="text-[10px] uppercase tracking-wider text-white/40">
-                Spectrum
-              </label>
-              <SpectrumAnalyser levelsRef={levelsRef} />
-            </div>
           </div>
         )}
 
