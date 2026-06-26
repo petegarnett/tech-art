@@ -161,7 +161,11 @@ export default function ControlPanel(props: Props) {
   };
 
   return (
-    <div className="lg:w-80 xl:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto pb-8 lg:pb-0 touch-manipulation">
+    <div
+      className={`${
+        tab === "matrix" ? "lg:w-[28rem] xl:w-[34rem]" : "lg:w-80 xl:w-96"
+      } shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto pb-8 lg:pb-0 touch-manipulation transition-[width] duration-200`}
+    >
       <div className="p-4 space-y-4">
         {/* Tabs */}
         <div className="flex gap-1">
@@ -402,7 +406,11 @@ export default function ControlPanel(props: Props) {
               </button>
             </div>
 
-            <RoutingMatrixView matrix={matrix} onChange={handleMatrixCell} />
+            <RoutingMatrixView
+              matrix={matrix}
+              onChange={handleMatrixCell}
+              levelsRef={levelsRef}
+            />
           </div>
         )}
 
