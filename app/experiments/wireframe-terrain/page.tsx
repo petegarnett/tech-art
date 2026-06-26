@@ -24,6 +24,7 @@ import { clamp, map } from "@/lib/math/utils";
 import { AudioEngine, listAudioInputs } from "./engine/audio";
 import { emptyMatrix, getDestinationMod } from "./engine/routing";
 import { hexToRgb, lerpColor, shiftHue } from "./engine/colour";
+import { evaluateZones, type Zone } from "./engine/zones";
 import type {
   AudioSource,
   AudioStatus,
@@ -67,6 +68,9 @@ export default function WireframeTerrainPage() {
   // Routing matrix
   const [matrix, setMatrix] = useState<RoutingMatrix>(() => emptyMatrix());
 
+  // Spatial audio zones
+  const [zones, setZones] = useState<Zone[]>([]);
+
   /* ─── Refs for the draw loop ─── */
 
   // Single AudioEngine kept across renders.
@@ -90,6 +94,7 @@ export default function WireframeTerrainPage() {
   const colourRef = useRef(colour);
   const matrixRef = useRef(matrix);
   const sensRef = useRef(sensitivity);
+  const zonesRef = useRef(zones);
 
   useEffect(() => {
     terrainRef.current = terrain;
@@ -103,6 +108,9 @@ export default function WireframeTerrainPage() {
   useEffect(() => {
     sensRef.current = sensitivity;
   }, [sensitivity]);
+  useEffect(() => {
+    zonesRef.current = zones;
+  }, [zones]);
 
   /* ─── Audio actions ─── */
 
@@ -228,38 +236,96 @@ export default function WireframeTerrainPage() {
     const gradBRgb = shiftHue(hexToRgb(c.gradientB), hueShift);
 
     // Build vertex grid
-    const vertices: {
+    interface Vertex {
       x: number;
       y: number;
       z: number;
       sx: number;
       sy: number;
       hn: number;
-    }[][] = [];
+      // Per-vertex zone contributions — averaged per-line in drawLine().
+      tr: number;
+      tg: number;
+      tb: number;
+      tw: number;
+      hueZ: number;    // hueShift mod from zones
+      brightZ: number; // brightness mod from zones
+      lineZ: number;   // lineWidth mod from zones
+    }
+
+    const vertices: Vertex[][] = [];
 
     let minH = Infinity;
     let maxH = -Infinity;
 
+    const zonesArr = zonesRef.current;
+    const zonesActive = zonesArr.length > 0;
+
     for (let r = 0; r <= rows; r++) {
-      const row: (typeof vertices)[0] = [];
+      const row: Vertex[] = [];
       for (let cc = 0; cc <= cols; cc++) {
         const x = (cc - cols / 2) * cellW;
         const z = nearZ + r * cellD - scrollOffset;
 
         const nx = x * frequency + timeOffset;
         const nz = z * frequency + timeOffset;
-        let h = octaveNoise2D(nx, nz, 2, 0.4) * amplitude;
+
+        // Per-vertex zone evaluation. When there are no zones, ze is an empty
+        // result and localAmp/localDetail reduce to amplitude/detail — the
+        // pre-zones behaviour is byte-identical.
+        let localAmp = amplitude;
+        let localDetail = detail;
+        let tr = 0;
+        let tg = 0;
+        let tb = 0;
+        let tw = 0;
+        let hueZ = 0;
+        let brightZ = 0;
+        let lineZ = 0;
+
+        if (zonesActive) {
+          const vxn = cc / cols; // 0 = left, 1 = right
+          const vzn = r / rows;  // 0 = near, 1 = far
+          const ze = evaluateZones(vxn, vzn, zonesArr, levels);
+          // Zone mods scale by global sensitivity, same as the matrix mods,
+          // so the per-band sensitivity slider applies uniformly.
+          localAmp = Math.max(0, amplitude + (ze.mods.amplitude ?? 0) * sens * 120);
+          localDetail = detail + (ze.mods.detail ?? 0) * sens * 40;
+          tr = ze.tintR;
+          tg = ze.tintG;
+          tb = ze.tintB;
+          tw = ze.tintWeight;
+          hueZ = (ze.mods.hueShift ?? 0) * sens * 180;
+          brightZ = (ze.mods.brightness ?? 0) * sens * 0.5;
+          lineZ = (ze.mods.lineWidth ?? 0) * sens * 1.5;
+        }
+
+        let h = octaveNoise2D(nx, nz, 2, 0.4) * localAmp;
 
         // Add high-frequency detail driven by the 'detail' destination
-        if (detail > 0) {
-          h += octaveNoise2D(nx * 3, nz * 3, 2, 0.5) * detail;
+        if (localDetail > 0) {
+          h += octaveNoise2D(nx * 3, nz * 3, 2, 0.5) * localDetail;
         }
 
         if (h < minH) minH = h;
         if (h > maxH) maxH = h;
 
         const y = -h;
-        row.push({ x, y, z, sx: 0, sy: 0, hn: h });
+        row.push({
+          x,
+          y,
+          z,
+          sx: 0,
+          sy: 0,
+          hn: h,
+          tr,
+          tg,
+          tb,
+          tw,
+          hueZ,
+          brightZ,
+          lineZ,
+        });
       }
       vertices.push(row);
     }
@@ -283,21 +349,14 @@ export default function WireframeTerrainPage() {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    const drawLine = (
-      x1: number,
-      y1: number,
-      z1: number,
-      hn1: number,
-      x2: number,
-      y2: number,
-      z2: number,
-      hn2: number,
-    ) => {
+    const drawLine = (v1: Vertex, v2: Vertex) => {
+      const z1 = v1.z;
+      const z2 = v2.z;
       if (z1 <= 1 || z2 <= 1) return;
 
       const avgZ = (z1 + z2) / 2;
       const depthFade = clamp(map(avgZ, nearZ, farZ, 1, 0.08), 0, 1);
-      const avgHn = (hn1 + hn2) / 2;
+      const avgHn = (v1.hn + v2.hn) / 2;
 
       let r: number, g: number, b: number;
       if (c.gradientMode) {
@@ -311,16 +370,45 @@ export default function WireframeTerrainPage() {
         b = baseRgb[2];
       }
 
+      // Per-line zone-driven mods — averaged from the two endpoints.
+      // When zones are inactive these are all 0 and the visuals are unchanged.
+      const lineHueZ = (v1.hueZ + v2.hueZ) / 2;
+      const lineBrightZ = (v1.brightZ + v2.brightZ) / 2;
+      const lineLineZ = (v1.lineZ + v2.lineZ) / 2;
+
+      // Apply per-line hue shift on top of the global one (already baked into
+      // baseRgb/gradient — this is the additional zone contribution).
+      if (lineHueZ !== 0) {
+        const shifted = shiftHue([r, g, b], lineHueZ);
+        r = shifted[0];
+        g = shifted[1];
+        b = shifted[2];
+      }
+
+      // Blend in zone tint colour (weighted average across endpoints).
+      const avgTw = (v1.tw + v2.tw) / 2;
+      if (avgTw > 0.001) {
+        const tr = (v1.tr + v2.tr) / 2 / avgTw;
+        const tg = (v1.tg + v2.tg) / 2 / avgTw;
+        const tb = (v1.tb + v2.tb) / 2 / avgTw;
+        const blend = Math.min(1, avgTw);
+        r = r * (1 - blend) + tr * blend;
+        g = g * (1 - blend) + tg * blend;
+        b = b * (1 - blend) + tb * blend;
+      }
+
       // Brightness multiplies the per-line alpha. Clamp so we never exceed 1.
       const baseAlpha = depthFade * (c.gradientMode ? 1 : 0.3 + avgHn * 0.7);
-      const alpha = clamp(baseAlpha * brightness, 0, 1);
+      const localBrightness = clamp(brightness + lineBrightZ, 0.1, 4);
+      const alpha = clamp(baseAlpha * localBrightness, 0, 1);
       ctx.strokeStyle = `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${alpha.toFixed(3)})`;
+      const localLineWidth = Math.max(0.1, lineWidthBase + lineLineZ);
       ctx.lineWidth =
-        lineWidthBase * clamp(map(avgZ, nearZ, farZ, 1, 0.2), 0.1, 3);
+        localLineWidth * clamp(map(avgZ, nearZ, farZ, 1, 0.2), 0.1, 3);
 
       ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
+      ctx.moveTo(v1.sx, v1.sy);
+      ctx.lineTo(v2.sx, v2.sy);
       ctx.stroke();
     };
 
@@ -331,17 +419,17 @@ export default function WireframeTerrainPage() {
 
         if (cc < cols) {
           const vr = vertices[r][cc + 1];
-          drawLine(v.sx, v.sy, v.z, v.hn, vr.sx, vr.sy, vr.z, vr.hn);
+          drawLine(v, vr);
         }
 
         if (r > 0) {
           const vd = vertices[r - 1][cc];
-          drawLine(v.sx, v.sy, v.z, v.hn, vd.sx, vd.sy, vd.z, vd.hn);
+          drawLine(v, vd);
         }
 
         if (cc < cols && r > 0) {
           const vdr = vertices[r - 1][cc + 1];
-          drawLine(v.sx, v.sy, v.z, v.hn, vdr.sx, vdr.sy, vdr.z, vdr.hn);
+          drawLine(v, vdr);
         }
       }
     }
@@ -375,6 +463,8 @@ export default function WireframeTerrainPage() {
           levelsRef={levelsRef}
           matrix={matrix}
           setMatrix={setMatrix}
+          zones={zones}
+          setZones={setZones}
           colour={colour}
           setColour={setColour}
         />

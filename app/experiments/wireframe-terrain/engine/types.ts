@@ -94,3 +94,8 @@ export interface AudioStatus {
   sampleRate: number;
   error: string | null;
 }
+
+/* Re-export zone types for convenience — most consumers only need to import
+   from ./types and pick up Zone/ZoneEvaluation alongside the routing types. */
+export type { Zone, ZoneEvaluation } from "./zones";
+

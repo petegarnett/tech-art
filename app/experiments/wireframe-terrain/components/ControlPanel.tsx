@@ -8,10 +8,11 @@
  *   - AUDIO:   source selector (none/mic/tab), device picker, start/stop,
  *              status + error, global sensitivity, spectrum analyser
  *   - MATRIX:  preset dropdown, clear, the 6×8 routing grid
+ *   - ZONES:   top-down editor + per-zone params (band, hardness, destinations, tint)
  *   - COLOUR:  base colour, gradient toggle, gradient A/B, preset gradients
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BAND_IDS,
   DESTINATION_IDS,
@@ -32,15 +33,19 @@ import {
   type SavedPatch,
 } from "../engine/storage";
 import { GRADIENT_PRESETS, type GradientPreset } from "../engine/colour";
+import { MAX_ZONES, newZone, type Zone } from "../engine/zones";
 import SpectrumAnalyser from "./SpectrumAnalyser";
 import RoutingMatrixView from "./RoutingMatrix";
+import ZoneEditor from "./ZoneEditor";
+import ZoneParams from "./ZoneParams";
 
-type Tab = "terrain" | "audio" | "matrix" | "colour";
+type Tab = "terrain" | "audio" | "matrix" | "zones" | "colour";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "terrain", label: "Terrain" },
   { id: "audio", label: "Audio" },
   { id: "matrix", label: "Matrix" },
+  { id: "zones", label: "Zones" },
   { id: "colour", label: "Colour" },
 ];
 
@@ -94,6 +99,10 @@ interface Props {
   matrix: RoutingMatrix;
   setMatrix: (m: RoutingMatrix) => void;
 
+  // Zones
+  zones: Zone[];
+  setZones: (next: Zone[]) => void;
+
   // Colour
   colour: ColourState;
   setColour: (c: ColourState) => void;
@@ -127,9 +136,62 @@ export default function ControlPanel(props: Props) {
     levelsRef,
     matrix,
     setMatrix,
+    zones,
+    setZones,
     colour,
     setColour,
   } = props;
+
+  /* ─── Zones ─── */
+
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  // Round-robin band for newly-added zones — cycles SUB → AIR.
+  const addBandIndexRef = useRef(0);
+
+  /** Add a new zone at the given normalised coords. Capped at MAX_ZONES. */
+  const addZone = (x: number, z: number) => {
+    if (zones.length >= MAX_ZONES) return;
+    const band = BAND_IDS[addBandIndexRef.current % BAND_IDS.length];
+    addBandIndexRef.current = (addBandIndexRef.current + 1) % BAND_IDS.length;
+    const zone = newZone(x, z, band);
+    setZones([...zones, zone]);
+    setSelectedZoneId(zone.id);
+  };
+
+  /** Replace a single zone by id. */
+  const updateZone = (id: string, next: Zone) => {
+    setZones(zones.map((z) => (z.id === id ? next : z)));
+  };
+
+  /** Move a zone (drag) — patch coords only. */
+  const moveZone = (id: string, x: number, z: number) => {
+    setZones(zones.map((zz) => (zz.id === id ? { ...zz, x, z } : zz)));
+  };
+
+  /** Resize a zone (drag the radius handle). */
+  const resizeZone = (id: string, radius: number) => {
+    setZones(zones.map((zz) => (zz.id === id ? { ...zz, radius } : zz)));
+  };
+
+  /** Delete a zone by id; clears the selection if it was selected. */
+  const deleteZone = (id: string) => {
+    setZones(zones.filter((z) => z.id !== id));
+    if (selectedZoneId === id) setSelectedZoneId(null);
+  };
+
+  /** Wipe all zones. */
+  const clearAllZones = () => {
+    if (
+      zones.length > 0 &&
+      typeof window !== "undefined" &&
+      !window.confirm("Remove all zones?")
+    )
+      return;
+    setZones([]);
+    setSelectedZoneId(null);
+  };
+
+  const selectedZone = zones.find((z) => z.id === selectedZoneId) ?? null;
 
   /* ─── handlers ─── */
 
@@ -166,26 +228,34 @@ export default function ControlPanel(props: Props) {
     setMatrix(copy);
   };
 
-  /** Save the current matrix to localStorage with the typed name. */
+  /** Save the current matrix + zones to localStorage with the typed name. */
   const handleSavePatch = () => {
     const name = newPatchName.trim();
     if (!name) return;
-    const saved = savePatch(name, matrix);
+    const saved = savePatch(name, matrix, zones);
     if (saved) {
       setSavedPatches(loadPatches());
       setNewPatchName("");
     }
   };
 
-  /** Load a saved patch — replaces the live matrix. */
+  /** Load a saved patch — replaces the live matrix AND zones. */
   const handleLoadSavedPatch = (p: SavedPatch) => {
-    // Deep clone so editing the matrix doesn't mutate the stored copy in memory.
+    // Deep clone so editing doesn't mutate the stored copy in memory.
     const copy = {} as RoutingMatrix;
     for (const b of BAND_IDS) {
       copy[b] = {} as Record<DestinationId, number>;
       for (const d of DESTINATION_IDS) copy[b][d] = p.matrix[b][d];
     }
     setMatrix(copy);
+    // Zones: deep clone (destinations is the only nested object).
+    setZones(
+      (p.zones ?? []).map((z) => ({
+        ...z,
+        destinations: { ...z.destinations },
+      })),
+    );
+    setSelectedZoneId(null);
     // Clear the built-in preset selection since we've loaded a user patch.
     setPreset("off");
   };
@@ -209,7 +279,9 @@ export default function ControlPanel(props: Props) {
   return (
     <div
       className={`${
-        tab === "matrix" ? "lg:w-[28rem] xl:w-[34rem]" : "lg:w-80 xl:w-96"
+        tab === "matrix" || tab === "zones"
+          ? "lg:w-[28rem] xl:w-[34rem]"
+          : "lg:w-80 xl:w-96"
       } shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto pb-8 lg:pb-0 touch-manipulation transition-[width] duration-200`}
     >
       <div className="p-4 space-y-4">
@@ -531,6 +603,58 @@ export default function ControlPanel(props: Props) {
                   ))}
                 </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── ZONES ─── */}
+        {tab === "zones" && (
+          <div className="space-y-3">
+            <p className="text-[10px] text-white/40 leading-relaxed">
+              Tap the map to drop a zone. Zones add audio-driven modulation
+              only inside their circle, on top of the global matrix.
+            </p>
+
+            <ZoneEditor
+              zones={zones}
+              selectedId={selectedZoneId}
+              levelsRef={levelsRef}
+              onAddZone={addZone}
+              onSelectZone={setSelectedZoneId}
+              onMoveZone={moveZone}
+              onResizeZone={resizeZone}
+            />
+
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wider text-white/40 tabular-nums">
+                {zones.length} / {MAX_ZONES} zones
+                {zones.length >= MAX_ZONES && (
+                  <span className="ml-1.5 text-amber-300/70">MAX</span>
+                )}
+              </span>
+              {zones.length > 0 && (
+                <button
+                  onClick={clearAllZones}
+                  className="px-2 py-1 text-[10px] uppercase tracking-wider text-white/50 bg-white/5 hover:bg-white/10 rounded transition-colors"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            {selectedZone && (
+              <ZoneParams
+                zone={selectedZone}
+                onUpdate={(next) => updateZone(selectedZone.id, next)}
+                onDelete={() => deleteZone(selectedZone.id)}
+              />
+            )}
+
+            {!selectedZone && zones.length > 0 && (
+              <p className="text-[9px] text-white/30 leading-relaxed pt-2 border-t border-white/5">
+                Tap a zone on the map to edit its band, hardness, destinations
+                and tint.
+              </p>
             )}
           </div>
         )}
