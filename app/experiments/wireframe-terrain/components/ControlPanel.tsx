@@ -51,6 +51,7 @@ export interface TerrainParams {
   gridDensity: number;
   tilt: number;
   lineWidth: number;
+  brightness: number;
 }
 
 export const TERRAIN_DEFAULTS: TerrainParams = {
@@ -60,6 +61,7 @@ export const TERRAIN_DEFAULTS: TerrainParams = {
   gridDensity: 40,
   tilt: 0.6,
   lineWidth: 1,
+  brightness: 1.4,
 };
 
 export interface ColourState {
@@ -298,6 +300,15 @@ export default function ControlPanel(props: Props) {
               step={0.1}
               display={terrain.lineWidth.toFixed(1)}
               onChange={(v) => updateTerrain("lineWidth", v)}
+            />
+            <Slider
+              label="Brightness"
+              value={terrain.brightness}
+              min={0.3}
+              max={3}
+              step={0.05}
+              display={terrain.brightness.toFixed(2)}
+              onChange={(v) => updateTerrain("brightness", v)}
             />
 
             <button

@@ -189,7 +189,9 @@ export default function WireframeTerrainPage() {
     const detail = detailMod * 40;
     const lineWidthBase = Math.max(0.1, p.lineWidth + lineMod * 1.5);
     const tilt = clamp(p.tilt + tiltMod * 0.3, 0, 1);
-    const brightness = clamp(1 + brightMod * 0.5, 0.3, 1.8);
+    // Brightness combines manual control + audio mod. Allow up to 3 so users
+    // can push wireframe visibility well above default.
+    const brightness = clamp(p.brightness + brightMod * 0.5, 0.1, 3);
     const hueShift = hueMod * 180; // degrees of hue rotation
 
     /* ─── Renderer (unchanged from pre-refactor) ─── */
