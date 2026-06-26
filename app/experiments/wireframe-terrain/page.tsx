@@ -178,13 +178,17 @@ export default function WireframeTerrainPage() {
     const brightMod = getDestinationMod(m, levels, "brightness") * sens;
     const tiltMod = getDestinationMod(m, levels, "tilt") * sens;
 
-    // Apply modulations — multiplicative around the base values.
-    const amplitude = p.amplitude * (1 + ampMod * 1.5);
-    const frequency = p.frequency * (1 + freqMod * 1.0);
-    const speed = p.speed * (1 + speedMod * 1.0);
+    // Apply modulations — additive offset from base so a base of 0 still
+    // responds to audio. Each destination has a `scale` — how much an audio
+    // level of 1.0 at depth 1.0 contributes. Tuned so a hard-driven preset
+    // gives a similar feel to the previous multiplicative version when the
+    // base sits at its default, but ALSO works when the base is 0.
+    const amplitude = Math.max(0, p.amplitude + ampMod * 120);
+    const frequency = Math.max(0.001, p.frequency + freqMod * 0.05);
+    const speed = Math.max(0, p.speed + speedMod * 2);
     const detail = detailMod * 40;
-    const lineWidthBase = p.lineWidth * (1 + lineMod * 0.8);
-    const tilt = clamp(p.tilt + tiltMod * 0.15, 0, 1);
+    const lineWidthBase = Math.max(0.1, p.lineWidth + lineMod * 1.5);
+    const tilt = clamp(p.tilt + tiltMod * 0.3, 0, 1);
     const brightness = clamp(1 + brightMod * 0.5, 0.3, 1.8);
     const hueShift = hueMod * 180; // degrees of hue rotation
 
