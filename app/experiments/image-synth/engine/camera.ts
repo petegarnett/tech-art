@@ -73,6 +73,9 @@ export class CameraEngine {
     this.deviceLabel = null;
   }
 
+  /** Direct access to the underlying video element (for WebGL texture uploads). */
+  get videoElement(): HTMLVideoElement | null { return this.video; }
+
   /** Update resolution mid-stream without restarting the camera. */
   setResolution(resolution: number): void {
     this.currentResolution = resolution;

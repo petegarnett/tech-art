@@ -19,7 +19,7 @@ import {
 import type { BandId, DestinationId } from "../engine/types";
 import type { Zone } from "../engine/zones";
 import { BAND_COLOURS } from "../engine/zones";
-import Knob from "./Knob";
+import Knob from "@/components/Knob";
 
 interface Props {
   zone: Zone;

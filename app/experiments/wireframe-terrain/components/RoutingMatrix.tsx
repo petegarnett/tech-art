@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useState } from "react";
-import Knob from "./Knob";
+import Knob from "@/components/Knob";
 import {
   BAND_IDS,
   BAND_LABELS,
