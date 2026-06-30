@@ -19,6 +19,9 @@
  *     iCamera sampler switches between them.
  *   - Render size = canvas CSS size × DPR. Camera texture is at video native
  *     resolution.
+ *   - UNPACK_FLIP_Y_WEBGL is set to true at upload time — video frames come
+ *     in with Y=0 at the top, GLSL UV space has Y=0 at the bottom, so without
+ *     the flip the visualiser is rendered upside-down.
  *
  * If WebGL2 is unavailable, init() returns false and the engine sits dormant
  * — caller should display a fallback message.
@@ -195,8 +198,11 @@ export class VisualiserGL {
       const ch = u.cameraVideo.videoHeight;
       if (cw > 0 && ch > 0) {
         gl.bindTexture(gl.TEXTURE_2D, this.liveTex);
-        // Mirror horizontally to match the camera view's selfie behaviour.
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        // FLIP Y at upload: WebGL textures default to Y=0 at the top (matching
+        // image data), but GLSL UV space has Y=0 at the bottom. Without this
+        // flip the visualiser shows the camera upside-down.
+        // pixelStorei is global GL state — set it right before every upload.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         if (cw !== this.lastCameraW || ch !== this.lastCameraH) {
           gl.texImage2D(
             gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, u.cameraVideo,
