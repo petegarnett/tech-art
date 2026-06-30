@@ -24,10 +24,13 @@ import Knob from "@/components/Knob";
 import { SCALE_LABELS } from "../engine/scales";
 import { DESTINATIONS } from "../engine/destinations";
 import { PRESETS, PRESET_BY_ID } from "../engine/presets";
+import ModSection from "./ModSection";
+import type { LFOConfig } from "../engine/lfo";
 import type {
   CameraConfig,
   DestinationId,
   MatrixConfig,
+  ModMatrix,
   PresetId,
   ScaleConfig,
   ScaleId,
@@ -41,13 +44,14 @@ import type {
   VizConfig,
 } from "../engine/types";
 
-type Tab = "camera" | "scan" | "synth" | "matrix" | "scale" | "viz";
+type Tab = "camera" | "scan" | "synth" | "matrix" | "mod" | "scale" | "viz";
 
 const TABS: { id: Tab; icon: string; label: string; short: string }[] = [
   { id: "camera", icon: "📷", label: "Camera", short: "CAM" },
   { id: "scan",   icon: "⏵",  label: "Scan",   short: "SCN" },
   { id: "synth",  icon: "🎹", label: "Synth",  short: "SYN" },
   { id: "matrix", icon: "🎚️", label: "Matrix", short: "MTX" },
+  { id: "mod",    icon: "🌊", label: "Mod",    short: "MOD" },
   { id: "scale",  icon: "🎼", label: "Scale",  short: "SCL" },
   { id: "viz",    icon: "✨", label: "Viz",    short: "VIZ" },
 ];
@@ -65,6 +69,17 @@ interface Props {
   setMatrix: (m: MatrixConfig) => void;
   viz: VizConfig;
   setViz: (v: VizConfig) => void;
+
+  /* ─── MOD tab state ─── */
+  lfos: LFOConfig[];
+  setLfos: (l: LFOConfig[]) => void;
+  modMatrix: ModMatrix;
+  setModMatrix: (m: ModMatrix) => void;
+  bpm: number;
+  setBpm: (n: number) => void;
+  modBypass: boolean;
+  setModBypass: (b: boolean) => void;
+  lfoLiveValues: Float32Array;
 
   devices: { deviceId: string; label: string }[];
   onRefreshDevices: () => void;
@@ -100,6 +115,11 @@ export default function ControlPanel(props: Props) {
     scale, setScale,
     matrix, setMatrix,
     viz, setViz,
+    lfos, setLfos,
+    modMatrix, setModMatrix,
+    bpm, setBpm,
+    modBypass, setModBypass,
+    lfoLiveValues,
     devices, onRefreshDevices,
     cameraActive, onStartCamera, onStopCamera,
     audioActive, onStartAudio, onStopAudio,
@@ -132,7 +152,7 @@ export default function ControlPanel(props: Props) {
     <div className="lg:w-80 xl:w-96 shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/60 backdrop-blur-sm overflow-y-auto pb-8 lg:pb-0 touch-manipulation">
       <div className="p-3 space-y-3">
         {/* ─── Tab row: hardware-synth-style module buttons ─── */}
-        <div className="grid grid-cols-6 gap-1">
+        <div className="grid grid-cols-7 gap-1">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -439,6 +459,28 @@ export default function ControlPanel(props: Props) {
             matrix={matrix}
             updateMatrix={updateMatrix}
             readoutRef={matrixReadoutRef}
+          />
+        )}
+
+        {/* ─── MOD ─── */}
+        {tab === "mod" && (
+          <ModSection
+            lfos={lfos}
+            setLfos={setLfos}
+            modMatrix={modMatrix}
+            setModMatrix={setModMatrix}
+            bpm={bpm}
+            setBpm={setBpm}
+            modBypass={modBypass}
+            setModBypass={setModBypass}
+            lfoLiveValues={lfoLiveValues}
+            matrix={matrix}
+            onLoadPatch={(p) => {
+              setMatrix({ ...p.matrix });
+              setLfos(p.lfos.map((l) => ({ ...l })));
+              setModMatrix({ ...p.modMatrix });
+              setBpm(p.bpm);
+            }}
           />
         )}
 

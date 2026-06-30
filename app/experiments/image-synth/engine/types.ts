@@ -144,3 +144,50 @@ export interface VizConfig {
   /** Per-preset param values, 0-1. Keyed by uniform name (e.g. iChromaticAberration). */
   params: Record<string, Record<string, number>>;
 }
+
+/* ─── Modulation Matrix (LFO bank) ─── */
+
+/** A specific LFO in the bank (4 total). */
+export type LFOIndex = 0 | 1 | 2 | 3;
+
+/** Group a destination belongs to — used by the MOD tab filter. */
+export type ModDestGroup = "camera" | "scan" | "synth" | "matrix" | "viz";
+
+/**
+ * Every parameter the LFO bank can modulate. Spread across the 5 groups —
+ * see modDestinations.ts for the full definitions + scaling.
+ */
+export type ModDestId =
+  | "cameraThreshold"
+  | "scanSpeed"
+  | "scanX"
+  | "masterVolume"
+  | "reverbWet"
+  | "delayWet"
+  | "sampleLoopStart"
+  | "sampleLoopEnd"
+  | "matrixFilterCutoffDepth"
+  | "matrixResonanceDepth"
+  | "matrixReverbSendDepth"
+  | "matrixDelaySendDepth"
+  | "matrixPanDepth"
+  | "matrixDetuneDepth"
+  | "matrixWaveformMorphDepth"
+  | "vizChromaticAberration"
+  | "vizScanlineTear"
+  | "vizBitCrush"
+  | "vizEdgeBoost"
+  | "vizHueRotate"
+  | "vizZoom"
+  | "vizBlockShift"
+  | "vizCameraMix";
+
+/** Sparse routing matrix: `lfo{1-4}.{destId}` → send amount in -1..+1. */
+export type ModRouteKey = `lfo${1 | 2 | 3 | 4}.${ModDestId}`;
+
+export type ModMatrix = Partial<Record<ModRouteKey, number>>;
+
+/** Build a routing key from a 0-based LFO index + destination id. */
+export function modRouteKey(lfoIdx: number, dest: ModDestId): ModRouteKey {
+  return `lfo${(lfoIdx + 1) as 1 | 2 | 3 | 4}.${dest}` as ModRouteKey;
+}

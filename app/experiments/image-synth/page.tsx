@@ -23,6 +23,8 @@ import { VisualiserGL } from "./engine/visualiserGL";
 import { buildNotes, midiToFreq } from "./engine/scales";
 import { defaultAllPresetParams } from "./engine/presets";
 import { useImageSynthLoop } from "./engine/useImageSynthLoop";
+import { LFOBank, DEFAULT_LFO_CONFIG } from "./engine/lfo";
+import type { LFOConfig } from "./engine/lfo";
 import {
   DEFAULT_MATRIX,
   DESTINATION_IDS,
@@ -32,6 +34,7 @@ import type {
   CameraConfig,
   DestinationId,
   MatrixConfig,
+  ModMatrix,
   ScaleConfig,
   ScanConfig,
   SynthConfig,
@@ -73,6 +76,15 @@ const SCALE_DEFAULTS: ScaleConfig = {
   octaves: 5,
 };
 
+/** Four neutral LFOs, gently varied (rates fan out so they don't lock). */
+const DEFAULT_LFOS: LFOConfig[] = [
+  { ...DEFAULT_LFO_CONFIG, shape: "sine",     rateHz: 0.5,  unipolar: true },
+  { ...DEFAULT_LFO_CONFIG, shape: "triangle", rateHz: 0.13, unipolar: false },
+  { ...DEFAULT_LFO_CONFIG, shape: "sampleHold", rateHz: 2,  unipolar: true, smooth: 0.6 },
+  { ...DEFAULT_LFO_CONFIG, shape: "saw",      rateHz: 0.07, unipolar: false },
+];
+const DEFAULT_BPM = 120;
+
 export default function ImageSynthPage() {
   /* ─── State ─── */
   const [camera, setCamera] = useState<CameraConfig>(CAMERA_DEFAULTS);
@@ -85,6 +97,14 @@ export default function ImageSynthPage() {
     composition: "camera-only", // default: identical to v1
     params: defaultAllPresetParams(),
   });
+  // LFO bank — 4 configs + sparse routing matrix + tempo.
+  const [lfos, setLfos] = useState<LFOConfig[]>(() => DEFAULT_LFOS.map((l) => ({ ...l })));
+  const [modMatrix, setModMatrix] = useState<ModMatrix>({});
+  const [bpm, setBpm] = useState<number>(DEFAULT_BPM);
+  const [modBypass, setModBypass] = useState<boolean>(false);
+  // Live tick of LFO values, sampled at ~30 Hz from the engine ref — used
+  // by the MOD tab UI to show meter bars + waveform previews.
+  const [lfoLiveValues, setLfoLiveValues] = useState<Float32Array>(() => new Float32Array(4));
   const [devices, setDevices] = useState<{ deviceId: string; label: string }[]>([]);
   const [cameraActive, setCameraActive] = useState(false);
   const [audioActive, setAudioActive] = useState(false);
@@ -98,6 +118,7 @@ export default function ImageSynthPage() {
   const synthRef = useRef<SynthEngine | null>(null);
   const fftRef = useRef<FFTAnalyser | null>(null);
   const vizRef = useRef<VisualiserGL | null>(null);
+  const lfoBankRef = useRef<LFOBank | null>(null);
 
   /* ─── Per-frame config refs (read inside the rAF loop) ─── */
   const cameraConfigRef = useRef(camera);
@@ -105,6 +126,8 @@ export default function ImageSynthPage() {
   const synthConfigRef = useRef(synth);
   const matrixConfigRef = useRef(matrix);
   const vizConfigRef = useRef(viz);
+  const modMatrixRef = useRef<ModMatrix>(modMatrix);
+  const bpmRef = useRef<number>(bpm);
   const greyRef = useRef<VoiceLevels>(new Float32Array(SYNTH_DEFAULTS.voices));
   const buffersRef = useRef<VoiceStateBuffers>(makeVoiceStateBuffers(SYNTH_DEFAULTS.voices));
   // Stable ref to the active volume Float32Array — passed to CameraView /
@@ -124,12 +147,27 @@ export default function ImageSynthPage() {
   useEffect(() => { synthConfigRef.current = synth; }, [synth]);
   useEffect(() => { matrixConfigRef.current = matrix; }, [matrix]);
   useEffect(() => { vizConfigRef.current = viz; }, [viz]);
+  useEffect(() => { modMatrixRef.current = modMatrix; }, [modMatrix]);
+  useEffect(() => { bpmRef.current = bpm; }, [bpm]);
+
+  // Push LFO config changes into the bank (imperative engine).
+  useEffect(() => {
+    lfoBankRef.current?.setConfigs(lfos);
+  }, [lfos]);
+
+  // Mirror bypass state imperatively (lives on the bank).
+  useEffect(() => {
+    if (lfoBankRef.current) lfoBankRef.current.bypass = modBypass;
+  }, [modBypass]);
 
   /* ─── Engine lifecycle ─── */
   useEffect(() => {
     cameraRef.current = new CameraEngine();
     synthRef.current = new SynthEngine();
     fftRef.current = new FFTAnalyser();
+    lfoBankRef.current = new LFOBank();
+    lfoBankRef.current.setConfigs(lfos);
+    lfoBankRef.current.bypass = modBypass;
     // Wire volumeRef to the live volume Float32Array.
     volumeRef.current = buffersRef.current.volume;
     return () => {
@@ -137,6 +175,21 @@ export default function ImageSynthPage() {
       synthRef.current?.dispose();
       fftRef.current?.dispose();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sample LFO bank values into React state at ~30Hz so UI can render meters
+  // + previews without re-rendering every frame.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = window.setInterval(() => {
+      const bank = lfoBankRef.current;
+      if (!bank) return;
+      const next = new Float32Array(4);
+      for (let i = 0; i < 4; i++) next[i] = bank.getValue(i);
+      setLfoLiveValues(next);
+    }, 33);
+    return () => window.clearInterval(id);
   }, []);
 
   /* ─── Devices list ─── */
@@ -245,8 +298,9 @@ export default function ImageSynthPage() {
 
   /* ─── Main animation loop ─── */
   useImageSynthLoop({
-    cameraRef, synthRef, fftRef, vizRef,
+    cameraRef, synthRef, fftRef, vizRef, lfoBankRef,
     cameraConfigRef, scanConfigRef, synthConfigRef, matrixConfigRef, vizConfigRef,
+    modMatrixRef, bpmRef,
     greyRef, buffersRef, matrixReadoutRef,
     scanXRef, sweepDirRef, sweepTimeRef,
   });
@@ -314,6 +368,15 @@ export default function ImageSynthPage() {
           setMatrix={setMatrix}
           viz={viz}
           setViz={setViz}
+          lfos={lfos}
+          setLfos={setLfos}
+          modMatrix={modMatrix}
+          setModMatrix={setModMatrix}
+          bpm={bpm}
+          setBpm={setBpm}
+          modBypass={modBypass}
+          setModBypass={setModBypass}
+          lfoLiveValues={lfoLiveValues}
           devices={devices}
           onRefreshDevices={refreshDevices}
           cameraActive={cameraActive}
