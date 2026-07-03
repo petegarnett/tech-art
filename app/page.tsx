@@ -38,6 +38,12 @@ const experiments: Experiment[] = [
     description: "Webcam image sonification — bright pixels become tones, Y is pitch, X is time. Wave a torch around, hold up shapes, write on paper. The camera plays whatever you put in front of it.",
     date: "2025-04-05",
   },
+  {
+    slug: "visualiser",
+    title: "Visualiser",
+    description: "Audio-reactive shader visualiser — feed it your system audio, tab audio, mic or an uploaded track. VJ-ready.",
+    date: "2026-06-30",
+  },
 ];
 
 export default function Home() {
