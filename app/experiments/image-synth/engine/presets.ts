@@ -10,23 +10,15 @@
  * shaders.ts). The UI iterates this list to render the knob grid.
  */
 import type { PresetId } from "./types";
+import type { PresetDef, PresetParam } from "@/lib/gfx/types";
 import { GLITCH_FRAG, FLOW_FRAG, MUTATE_FRAG } from "./shaders";
 
-export interface PresetParam {
-  name: string;        // uniform name, e.g. iChromaticAberration
-  label: string;       // UI label, e.g. "Chroma"
-  default: number;     // 0-1
-}
+// PresetParam + PresetDef come from lib/gfx/types (shared across experiments).
+// Re-export locally so image-synth code that imports { PresetDef, PresetParam }
+// from this module keeps working.
+export type { PresetDef, PresetParam };
 
-export interface PresetDef {
-  id: PresetId;
-  label: string;
-  description: string;
-  fragSource: string;
-  params: PresetParam[];
-}
-
-export const PRESETS: PresetDef[] = [
+export const PRESETS: PresetDef<PresetId>[] = [
   {
     id: "glitch",
     label: "Glitch",
@@ -71,9 +63,9 @@ export const PRESETS: PresetDef[] = [
   },
 ];
 
-export const PRESET_BY_ID: Record<PresetId, PresetDef> = Object.fromEntries(
+export const PRESET_BY_ID: Record<PresetId, PresetDef<PresetId>> = Object.fromEntries(
   PRESETS.map((p) => [p.id, p]),
-) as Record<PresetId, PresetDef>;
+) as Record<PresetId, PresetDef<PresetId>>;
 
 /** Build a default param value map for a preset. */
 export function defaultPresetParams(id: PresetId): Record<string, number> {

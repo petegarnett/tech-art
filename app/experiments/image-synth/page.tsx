@@ -18,13 +18,15 @@ import ControlPanel from "./components/ControlPanel";
 import VisualiserView from "./components/VisualiserView";
 import { CameraEngine, listVideoInputs } from "./engine/camera";
 import { SynthEngine } from "./engine/synth";
-import { FFTAnalyser } from "./engine/fft";
-import { VisualiserGL } from "./engine/visualiserGL";
+import { FFTAnalyser } from "@/lib/audio/fft";
+import { VisualiserGL } from "@/lib/gfx/visualiserGL";
+import { PRESETS as VIZ_PRESETS } from "./engine/presets";
+import type { PresetId } from "./engine/types";
 import { buildNotes, midiToFreq } from "./engine/scales";
 import { defaultAllPresetParams } from "./engine/presets";
 import { useImageSynthLoop } from "./engine/useImageSynthLoop";
-import { LFOBank, DEFAULT_LFO_CONFIG } from "./engine/lfo";
-import type { LFOConfig } from "./engine/lfo";
+import { LFOBank, DEFAULT_LFO_CONFIG } from "@/lib/audio/lfo";
+import type { LFOConfig } from "@/lib/audio/lfo";
 import {
   DEFAULT_MATRIX,
   DESTINATION_IDS,
@@ -306,7 +308,7 @@ export default function ImageSynthPage() {
   });
 
   /* ─── Visualiser engine factory (stable identity) ─── */
-  const makeVizEngine = useMemo(() => () => new VisualiserGL(), []);
+  const makeVizEngine = useMemo(() => () => new VisualiserGL<PresetId>(VIZ_PRESETS), []);
 
   /* ─── Render ─── */
   const cameraOpacity = viz.composition === "viz-underlay" ? 0.5

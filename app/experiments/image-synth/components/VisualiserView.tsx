@@ -10,7 +10,7 @@
  * fallback message instead of attempting to draw.
  */
 import { useEffect, useRef, useState } from "react";
-import type { VisualiserGL } from "../engine/visualiserGL";
+import type { VisualiserGL } from "@/lib/gfx/visualiserGL";
 import type { CompositionMode } from "../engine/types";
 
 interface Props {

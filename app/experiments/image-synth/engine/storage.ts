@@ -15,7 +15,7 @@
  * can migrate cleanly.
  */
 
-import type { LFOConfig } from "./lfo";
+import type { LFOConfig } from "@/lib/audio/lfo";
 import type { MatrixConfig, ModMatrix } from "./types";
 
 const STORAGE_KEY = "tech-art:image-synth:patch:v1";

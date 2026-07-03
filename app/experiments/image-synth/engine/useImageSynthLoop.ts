@@ -22,12 +22,12 @@
 import { useEffect, useRef } from "react";
 import { CameraEngine } from "./camera";
 import type { SynthEngine } from "./synth";
-import type { FFTAnalyser } from "./fft";
-import type { VisualiserGL } from "./visualiserGL";
+import type { FFTAnalyser } from "@/lib/audio/fft";
+import type { VisualiserGL } from "@/lib/gfx/visualiserGL";
 import { computeGrey, routeToDestinations } from "./sonify";
 import { DESTINATIONS } from "./destinations";
 import { MOD_DESTINATIONS } from "./modDestinations";
-import type { LFOBank } from "./lfo";
+import type { LFOBank } from "@/lib/audio/lfo";
 import type {
   CameraConfig,
   DestinationId,

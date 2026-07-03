@@ -25,7 +25,7 @@ import { SCALE_LABELS } from "../engine/scales";
 import { DESTINATIONS } from "../engine/destinations";
 import { PRESETS, PRESET_BY_ID } from "../engine/presets";
 import ModSection from "./ModSection";
-import type { LFOConfig } from "../engine/lfo";
+import type { LFOConfig } from "@/lib/audio/lfo";
 import type {
   CameraConfig,
   DestinationId,

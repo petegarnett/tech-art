@@ -18,8 +18,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Knob from "@/components/Knob";
-import { previewWaveform, SYNC_RATES, SYNC_LABELS } from "../engine/lfo";
-import type { LFOConfig, LFOShape, SyncRate } from "../engine/lfo";
+import { previewWaveform, SYNC_RATES, SYNC_LABELS } from "@/lib/audio/lfo";
+import type { LFOConfig, LFOShape, SyncRate } from "@/lib/audio/lfo";
 import {
   MOD_DESTINATIONS,
   MOD_DESTINATIONS_BY_GROUP,
