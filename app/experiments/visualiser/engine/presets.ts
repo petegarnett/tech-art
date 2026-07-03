@@ -28,9 +28,13 @@ export const PRESETS: PresetDef<PresetId>[] = [
     description: "Gaijin / HomeSick / Strangeloop — chromatic aberration, datamoshing, scanline tear. Camera-less: pure energy tint.",
     fragSource: GLITCH_FRAG,
     // Ported verbatim from Image Synth's GLITCH — same uniforms + defaults.
-    // Notable: iCameraMix defaults to 0.0 here (not 1.0 like image-synth) —
-    // the Visualiser has no camera, so mixing toward "camera" would just
-    // show the grey placeholder pixel. 0.0 gives pure energy-tint mode.
+    // iCameraMix default is 1.0 so the shader's own effects (chromatic
+    // aberration, scanline tear, edge boost, block shift, freeze frame,
+    // hue rotate, invert) drive the output. With iCameraMix=0.0 the shader
+    // reduces to `vec3(iBass, iMid, iTreble)` — a flat colour that discards
+    // all the interesting glitch work. Note: without a camera, iCamera is
+    // the 1×1 grey pixel, so at iCameraMix=1.0 the shader operates on grey
+    // and the glitch effects still show up beautifully.
     params: [
       { name: "iChromaticAberration", label: "Chroma",    default: 0.35 },
       { name: "iScanlineTear",        label: "Tear",      default: 0.50 },
@@ -43,7 +47,7 @@ export const PRESETS: PresetDef<PresetId>[] = [
       { name: "iZoom",                label: "Bass Zoom", default: 0.30 },
       { name: "iBlockShift",          label: "Datamosh",  default: 0.40 },
       { name: "iVignette",            label: "Vignette",  default: 0.30 },
-      { name: "iCameraMix",           label: "Cam Mix",   default: 0.00 },
+      { name: "iCameraMix",           label: "Cam Mix",   default: 1.00 },
     ],
   },
   {

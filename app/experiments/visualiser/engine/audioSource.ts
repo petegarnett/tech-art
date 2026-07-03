@@ -12,10 +12,14 @@
  *   - mic     — getUserMedia({ audio: true }) with optional deviceId.
  *   - file    — HTMLAudioElement + createMediaElementSource. Play/pause/seek.
  *
- * All modes route through a shared `master` GainNode on Tone's rawContext,
- * which fans out to both the analyser tap and the audio destination (so the
- * user hears the sound). Silent mode never creates a source — it just
- * ensures the AudioContext is running.
+ * All modes route through a shared `master` GainNode on Tone's rawContext.
+ * The FFTAnalyser taps master externally (via getAudioNode()). Audio
+ * PLAYBACK is per-mode:
+ *   - system / tab: the source app is already playing the audio — we only
+ *     analyse it, we don't play it back (would cause a doubled echo).
+ *   - mic: never played back (would feedback via speakers).
+ *   - file: played back — the file has no other output path.
+ *   - silent: no source, nothing to route.
  *
  * Notes:
  *   - getDisplayMedia + audio is Chrome-only and requires HTTPS in prod
@@ -96,8 +100,15 @@ export class AudioSourceEngine {
       this.ctx = Tone.getContext().rawContext as AudioContext;
       this.master = this.ctx.createGain();
       this.master.gain.value = 1.0;
-      // Master fans to destination — analyser is tapped externally via getAudioNode().
-      this.master.connect(this.ctx.destination);
+      // NOTE: master is intentionally NOT connected to ctx.destination.
+      // The analyser taps master via getAudioNode(). Audio playback is
+      // handled per-mode:
+      //   - system/tab: the original app already plays the audio; playing
+      //     it here would cause a doubled/echo effect.
+      //   - mic: playing back the mic creates feedback via speakers.
+      //   - file: the file has no other output path, so we DO connect it
+      //     to destination in startFile().
+      //   - silent: no source, nothing to play.
     }
     return { ctx: this.ctx, master: this.master };
   }
@@ -260,6 +271,9 @@ export class AudioSourceEngine {
     this.audioEl = el;
     this.mediaElNode = ctx.createMediaElementSource(el);
     this.mediaElNode.connect(master);
+    // File mode is the only path that plays audio through speakers —
+    // the file has no other output. system/tab/mic all skip this.
+    this.mediaElNode.connect(ctx.destination);
     // Kick off playback.
     await el.play().catch(() => {
       /* autoplay might fail — the UI's play button handles it */
