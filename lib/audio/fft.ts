@@ -55,10 +55,17 @@ export class FFTAnalyser {
     this.sampleRate = Tone.getContext().sampleRate;
   }
 
-  /** Tap an audio node into the analyser (typically the master bus). */
-  connectFrom(node: Tone.ToneAudioNode | null): void {
+  /** Tap an audio node into the analyser (typically the master bus).
+   *
+   * Accepts either a Tone.ToneAudioNode (Image Synth's pattern) or a raw
+   * WebAudio AudioNode (Visualiser's pattern with getUserMedia /
+   * getDisplayMedia streams). Uses Tone's `connect()` helper which
+   * transparently unwraps ToneAudioNode.input/.output to their underlying
+   * raw AudioNodes, so a raw source → Tone destination works.
+   */
+  connectFrom(node: Tone.ToneAudioNode | AudioNode | null): void {
     if (!node) return;
-    node.connect(this.analyser);
+    Tone.connect(node, this.analyser);
   }
 
   /** Disconnect — call before disposing the source. */

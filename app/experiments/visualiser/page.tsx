@@ -73,14 +73,6 @@ export default function VisualiserPage() {
   const fftRef = useRef<FFTAnalyser | null>(null);
   const vizRef = useRef<VisualiserGL<PresetId> | null>(null);
   const lfoBankRef = useRef<LFOBank | null>(null);
-  /**
-   * Bridge between the raw WebAudio GainNode owned by AudioSourceEngine and
-   * the Tone.Analyser inside FFTAnalyser. Tone insists on ToneAudioNodes for
-   * its `connect` API, so we use a Tone.Gain proxy: rawGain → proxy → analyser.
-   * Persistent across mode switches to avoid allocation churn.
-   */
-  const toneBridgeRef = useRef<Tone.Gain | null>(null);
-
   /* ─── Per-frame config refs (mirror state so the loop sees latest) ─── */
   const presetDefRef = useRef(PRESET_BY_ID[DEFAULT_PRESET]);
   const presetParamsRef = useRef(presetParams);
@@ -124,8 +116,6 @@ export default function VisualiserPage() {
       fftRef.current = null;
       vizRef.current?.dispose();
       vizRef.current = null;
-      toneBridgeRef.current?.dispose();
-      toneBridgeRef.current = null;
     };
   }, []);
 
@@ -151,23 +141,15 @@ export default function VisualiserPage() {
     // triggered by a click, so this is safe.
     await Tone.start();
     await engine.start(mode, opts);
-    // (Re)wire the FFT to the master gain. We have a raw WebAudio GainNode
-    // from AudioSourceEngine, and FFTAnalyser wraps a Tone.Analyser. Tone's
-    // `connect(src, dst)` static accepts a raw AudioNode source and connects
-    // it to a Tone InputNode destination — this is the sanctioned bridge.
+    // Wire the FFT to the master gain. FFTAnalyser.connectFrom() accepts
+    // a raw WebAudio AudioNode directly (see lib/audio/fft.ts) — no bridge
+    // needed. This matches wireframe-terrain's proven pattern of
+    // source.connect(analyser).
     const node = engine.getAudioNode();
     const fft = fftRef.current;
     if (fft && node) {
-      // Lazy-create the Tone.Gain bridge once, on first start. It sits between
-      // the raw AudioSourceEngine master gain and the Tone.Analyser.
-      if (!toneBridgeRef.current) toneBridgeRef.current = new Tone.Gain();
-      const bridge = toneBridgeRef.current;
-      // Reset both ends before rewiring so we don't stack connections.
       fft.disconnect();
-      try { bridge.disconnect(); } catch { /* already clean */ }
-      // rawGain → bridge.input (a GainNode) via WebAudio, then bridge → analyser via Tone.
-      node.connect(bridge.input);
-      fft.connectFrom(bridge);
+      fft.connectFrom(node);
     }
   }, []);
 
